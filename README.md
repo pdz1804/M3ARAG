@@ -68,7 +68,7 @@ pip install sentence-transformers langchain openai chromadb docling python-doten
 Copy `.env.example` and rename to `.env`, then fill in your OpenAI key:
 
 ```env
-OPENAI_API_KEY=sk-...
+OPENAI_API_KEY=pdz-...
 ```
 
 ### 5. Run the full pipeline

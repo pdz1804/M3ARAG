@@ -48,15 +48,15 @@ def main():
     # python main.py --agent
     args = parse_args() 
     
-    # # === Paths ===
-    # STORE_DIR = Path("data/store")
-    # STORE_DIR.mkdir(parents=True, exist_ok=True)
+    # === Paths ===
+    STORE_DIR = Path("data/store")
+    STORE_DIR.mkdir(parents=True, exist_ok=True)
     
-    # process_documents(input_items, STORE_DIR)
+    process_documents(input_items, STORE_DIR)
     
-    # # === Set to True to use agent-based answering (TextAgent → Generalize → Finalize)
-    # # === Agent mode toggle via CLI
-    # start_rag_chat(use_agent=args.agent)
+    # === Set to True to use agent-based answering (TextAgent → Generalize → Finalize)
+    # === Agent mode toggle via CLI
+    start_rag_chat(use_agent=args.agent)
 
 if __name__ == "__main__":
     main()
