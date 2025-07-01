@@ -73,6 +73,14 @@ OPENAI_API_KEY=sk-...
 
 ### 5. Run the full pipeline
 
+If you want to run RAG-flow individually without Agents:
+
+```bash
+python main.py 
+```
+
+If you want to test with the Agents:
+
 ```bash
 python main.py --agent
 ```
