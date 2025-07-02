@@ -14,5 +14,5 @@ class FinalizeAgent(BaseAgent):
     def run(self, input_data: dict) -> str:
         return self.chain.invoke({
             "question": input_data.get("question", ""),
-            "general_answer": input_data.get("general_answer", "")
+            "general_answer": input_data.get("GeneralizeAgent", "")
         })

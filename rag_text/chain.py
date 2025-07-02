@@ -28,9 +28,9 @@ def _format_docs(docs):
     )
     
 def _debug_print_context(formatted: str) -> str:
-    # print("\n🧠 Selected RAG Context:\n" + "-" * 80)
-    # print(formatted)
-    # print("-" * 80)
+    print("\n🧠 Selected RAG Context:\n" + "-" * 80)
+    print(formatted)
+    print("-" * 80)
     return formatted
 
 def build_rag_chain(

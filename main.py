@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import logging
 from pathlib import Path
 from utils.process_documents import process_documents
-from app.chat import start_rag_chat
+
 
 # # Uncomment to check if CUDA is available
 # import torch
@@ -34,13 +34,13 @@ input_items = [
     "https://www.apple.com/",
     "https://www.ibm.com/us-en",
     "https://www.hp.com/us-en/home.html",
-    "https://us.msi.com/",
     "https://www.dell.com/en-vn",
 ]
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--agent", action="store_true", help="Enable multi-agent answering mode")
+    parser.add_argument("--text", action="store_true", help="Enable text-based retrieval")
+    parser.add_argument("--image", action="store_true", help="Enable image-based retrieval")
     return parser.parse_args()
 
 def main():
@@ -56,7 +56,9 @@ def main():
     
     # === Set to True to use agent-based answering (TextAgent → Generalize → Finalize)
     # === Agent mode toggle via CLI
-    start_rag_chat(use_agent=args.agent)
+    from app.chat import start_rag_chat
+    
+    start_rag_chat(use_text=args.text, use_image=args.image)
 
 if __name__ == "__main__":
     main()

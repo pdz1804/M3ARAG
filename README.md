@@ -73,16 +73,21 @@ OPENAI_API_KEY=pdz-...
 
 ### 5. Run the full pipeline
 
-If you want to run RAG-flow individually without Agents:
+If you want to run RAG-flow individually without Agents or with Agents:
 
 ```bash
-python main.py 
-```
+# Use both text and image agents
+python main.py --text --image
 
-If you want to test with the Agents:
+# Use text only
+python main.py --text
 
-```bash
-python main.py --agent
+# Use image only
+python main.py --image
+
+# Use standard text-only fallback (no multi-agent)
+python main.py
+
 ```
 
 This will:

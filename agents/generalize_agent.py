@@ -12,7 +12,14 @@ class GeneralizeAgent(BaseAgent):
         self.chain = prompt | ChatOpenAI(model_name="gpt-4o-mini", temperature=0) | StrOutputParser()
 
     def run(self, input_data: dict) -> str:
+        # return self.chain.invoke({
+        #     "text_answer": input_data.get("text_answer", ""),
+        #     "image_answer": input_data.get("image_answer", "")
+        # })
+        
         return self.chain.invoke({
-            "text_answer": input_data.get("text_answer", ""),
-            "image_answer": input_data.get("image_answer", "")
+            "text_answer": input_data.get("TextRAGAgent", ""),
+            "image_answer": input_data.get("ImageRAGAgent", "")
         })
+
+

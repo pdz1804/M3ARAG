@@ -10,10 +10,10 @@ from agents.orchestrator_runner import answer_question
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def start_rag_chat(use_agent: bool = False):
+def start_rag_chat(use_text: bool = False, use_image: bool = False):
     """Step 2: Load, embed, and run interactive RAG chat on extracted PDFs or via agents."""
     try:
-        if use_agent:
+        if use_text or use_image:
             print("\n🤖 Agent Mode Enabled: TextAgent → GeneralizeAgent → FinalizeAgent")
             print("Type 'exit' or press Ctrl+C to quit.\n")
 
@@ -24,7 +24,9 @@ def start_rag_chat(use_agent: bool = False):
                         print("👋 Goodbye!")
                         break
                     answer = answer_question(
-                        question, use_text=True, use_image=False
+                        question,
+                        use_text=use_text,
+                        use_image=use_image,
                     )
                     print(f"\n💬 Final Answer:\n{answer}\n" + "-" * 80)
                 except KeyboardInterrupt:
@@ -63,6 +65,5 @@ def start_rag_chat(use_agent: bool = False):
 
     except Exception as e:
         logger.error(f"❌ Failed to start RAG chat: {e}")
-        
         
         
