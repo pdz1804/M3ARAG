@@ -10,7 +10,7 @@
 
 # 02/07/2025
 
-
+- Currently for the ImageRAGAgent, we use the Qwen-2.5-VL-Instruct to perform describing and analyzing the image to provide some captions. Then put that captions into the vectorstore. Then just process it like the TextRAGAgent.
 
 
 
