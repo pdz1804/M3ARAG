@@ -3,6 +3,7 @@ vectorstores/*
 data/*
 test/*
 others/*
+tmp/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

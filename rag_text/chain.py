@@ -42,7 +42,7 @@ def build_rag_chain(
         llm: BaseChatModel = ChatOpenAI(
             model_name=model_name,
             temperature=0,
-            max_tokens=512
+            max_tokens=1024
         )
 
         chain = (

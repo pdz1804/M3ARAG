@@ -12,3 +12,5 @@ sentence-transformers
 playwright
 markdown
 pdfkit
+google-generativeai
+PyPDF2

@@ -1,7 +1,7 @@
 
 # 🤖 M3ARAG: Modular Multi-Agent RAG Pipeline
 
-This project is a fully modular **multi-agent Retrieval-Augmented Generation (RAG)** system capable of processing **PDFs, HTMLs, images, and tables** for answering questions using a pipeline of specialized agents:
+This project is a fully modular **Multi-Modal Multi-Agent Retrieval-Augmented Generation (RAG)** system capable of processing **PDFs, HTMLs, images, and tables** for answering questions using a pipeline of specialized agents:
 
 - 🔍 `TextAgent` – performs text-based retrieval over documents
 - 🔍 `VisualAgent` – performs image-based retrieval over documents (NOT DONE)

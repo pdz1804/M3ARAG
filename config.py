@@ -41,3 +41,4 @@ Based on this, provide the best possible final answer. Be confident, concise, an
 If there is truly no relevant information, only then say "No answer found."
 """
 
+IMAGE_CAPTIONING = "gemini" # "openai" or "qwen" (Qwen2.5-VL)

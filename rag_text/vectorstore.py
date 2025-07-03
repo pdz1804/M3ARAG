@@ -4,9 +4,8 @@
 import os
 import logging
 from typing import List
-# from langchain_community.embeddings import HuggingFaceEmbeddings # note
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Chroma # note
+from langchain_chroma import Chroma
 from langchain_core.vectorstores import VectorStoreRetriever
 from langchain_core.documents import Document
 
@@ -32,7 +31,7 @@ def get_retriever(
                 embedding=embedding_model,
                 persist_directory=persist_path
             )
-            vectorstore.persist()
+            
             logger.info("✅ Chroma DB saved.")
 
         return vectorstore.as_retriever(search_kwargs={"k": top_k})

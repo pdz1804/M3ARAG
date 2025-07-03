@@ -2,6 +2,8 @@
 
 import re
 from PyPDF2 import PdfReader
+# from langchain.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader
 import logging
 from pathlib import Path
 from typing import List
@@ -12,145 +14,191 @@ from PIL import Image
 from tqdm import tqdm
 import torch
 
+from transformers import BitsAndBytesConfig
+from colpali_engine.models import ColQwen2, ColQwen2Processor
+
+from langchain_chroma import Chroma
+from langchain.embeddings.base import Embeddings
+from langchain_core.embeddings import Embeddings as EmbeddingsProtocol
+
+from pdf2image import convert_from_path
+
+from rag_image.model_cache import get_copali_model_and_processor
+
 # === Setup logging ===
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-def get_pdf_context_from_image_name(
-    image_path: Path,
-    pdf_dirs: list = [Path("data/extract/pdf"), Path("data/store")],
-    num_lines: int = 5,
-) -> str:
-    """Extract top N lines of text from a PDF file corresponding to an image name."""
-    # Extract the PDF stem directly before "-pic-"
-    image_stem = image_path.stem
-    if "-pic-" not in image_stem:
-        print(f"❌ Cannot extract PDF name from image: {image_path.name}")
-        return ""
+class CoPaliImageEmbedder(EmbeddingsProtocol):
+    """Wrap CoPali to act as a LangChain Embedding interface."""
+    def __init__(self):
+        self.model, self.processor = get_copali_model_and_processor()
 
-    pdf_stem = image_stem.split("-pic-")[0]
-    pdf_filename = f"{pdf_stem}.pdf"
+    def embed_documents(self, image_paths: List[str], batch_size: int = 4) -> List[List[float]]:
+        import gc  # ← Import once here
+        
+        # self._lazy_load_model()  # Only load here
+        
+        embeddings = []
+        print(f"🧠 Embedding {len(image_paths)} images in batches of {batch_size}...")
 
-    for pdf_dir in pdf_dirs:
-        pdf_path = pdf_dir / pdf_filename
-        if pdf_path.exists():
-            try:
-                reader = PdfReader(str(pdf_path))
-                full_text = ""
-                for page in reader.pages:
-                    full_text += page.extract_text() + "\n"
-                    if len(full_text.splitlines()) >= num_lines * 2:
-                        break
-
-                # Clean and select lines
-                lines = [line.strip() for line in full_text.splitlines() if line.strip()]
-                context = "\n".join(lines[:num_lines])
-                print(f"✅ Context extracted from: {pdf_path}")
-                return context
-
-            except Exception as e:
-                print(f"❌ Failed to read {pdf_path.name}: {e}")
-                return ""
-
-    print(f"⚠️ PDF not found for: {pdf_filename}")
-    return ""
-
-def caption_images_to_documents(
-    image_dir: str = "data/extract/imgs",
-    max_new_tokens: int = 128,
-    context_lines: int = 10
-) -> List[Document]:
-    logger.info(f"🖼️ Loading and captioning images from: {image_dir}")
-
-    # === Load Qwen2.5-VL-3B in INT4 ===
-    logger.info("📦 Loading Qwen2.5-VL-3B in INT4...")
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_use_double_quant=True,
-        bnb_4bit_compute_dtype=torch.float16,  # <-- fix here
-        bnb_4bit_quant_type="nf4"
-    )
-
-    model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-        "Qwen/Qwen2.5-VL-3B-Instruct",
-        quantization_config=bnb_config,
-        device_map="auto",
-    )
-    processor = AutoProcessor.from_pretrained("Qwen/Qwen2.5-VL-3B-Instruct")
-    model.eval()
-    logger.info(f"✅ Model loaded on device: {model.device}")
-
-    # === Load image paths ===
-    img_dir = Path(image_dir)
-    if not img_dir.exists():
-        logger.warning(f"⚠️ Image directory does not exist: {img_dir}")
-        return []
-
-    img_paths = sorted(img_dir.glob("*.png"))
-    if not img_paths:
-        logger.warning(f"⚠️ No .png images found in: {img_dir}")
-        return []
-
-    docs = []
-
-    logger.info(f"🔍 Found {len(img_paths)} image(s). Beginning captioning...")
-
-    for path in tqdm(img_paths, desc="📝 Captioning images", ncols=80):
-        try:
-            # image = Image.open(path).convert("RGB")
-
-            # messages = [{
-            #     "role": "user",
-            #     "content": [
-            #         {"type": "image", "image": image},
-            #         {"type": "text", "text": "Describe this image in detail. Focus on key elements, context, and any relevant information."}
-            #     ],
-            # }]
-            
-            image = Image.open(path).convert("RGB")
-            context = get_pdf_context_from_image_name(path, num_lines=context_lines)
-
-            base_prompt = "Describe this image in detail. Focus on key elements, context, and relevant insights."
-            if context:
-                logger.info(f"📚 Context found for {path.name} — injecting into prompt.")
-                prompt = (
-                    f"This image is from a research paper. Based on the following abstract/context:\n\n"
-                    f"{context}\n\n{base_prompt}"
-                )
-            else:
-                logger.warning(f"⚠️ No context found for {path.name} — using base prompt only.")
-                prompt = base_prompt
-
-            messages = [{
-                "role": "user",
-                "content": [
-                    {"type": "image", "image": image},
-                    {"type": "text", "text": prompt}
-                ],
-            }]
-
-            text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-            image_inputs, video_inputs = process_vision_info(messages)
-            inputs = processor(
-                text=[text],
-                images=image_inputs,
-                videos=video_inputs,
-                padding=True,
-                return_tensors="pt"
-            ).to(model.device)
+        for i in tqdm(range(0, len(image_paths), batch_size), desc="🖼️ CoPali embedding", ncols=80):
+            batch_paths = image_paths[i:i + batch_size]
+            images = [Image.open(p).convert("RGB") for p in batch_paths]
+            batch = self.processor.process_images(images).to(self.model.device)
 
             with torch.no_grad():
-                generated_ids = model.generate(**inputs, max_new_tokens=max_new_tokens)
-                trimmed_ids = [o[len(i):] for i, o in zip(inputs.input_ids, generated_ids)]
-                caption = processor.batch_decode(
-                    trimmed_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False
-                )[0].strip()
+                batch_embeddings = self.model(**batch)
 
-            logger.info(f"🖼️ [{path.name}] Caption: {caption[:60]}...")
-            docs.append(Document(page_content=caption, metadata={"source": str(path)}))
+                # If shape is [B, T, D], reduce to [B, D]
+                if isinstance(batch_embeddings, tuple):  # unwrap (model might return a tuple)
+                    batch_embeddings = batch_embeddings[0]
+                if batch_embeddings.ndim == 3:
+                    batch_embeddings = batch_embeddings.mean(dim=1)
 
+                emb_list = batch_embeddings.cpu().tolist()
+                embeddings.extend(emb_list)
+            
+            # 🔥 Free memory after each batch
+            del batch_embeddings, batch, images
+            torch.cuda.empty_cache()
+            gc.collect()
+
+        return embeddings
+
+    def embed_query(self, query: str) -> List[float]:
+        # self._lazy_load_model()  # Only load here
+        
+        logger.info(f"🧠 Embedding query: {query[:60]}...")
+        
+        import gc  # ← Import once here
+        
+        batch = self.processor.process_queries([query]).to(self.model.device)
+        with torch.no_grad():
+            output = self.model(**batch)
+            if isinstance(output, tuple):
+                output = output[0]
+            if output.ndim == 3:
+                output = output.mean(dim=1)
+            query_embedding = output[0].cpu().tolist()  # shape: [D]
+            
+        # 🔥 Free memory after each batch
+        del batch
+        torch.cuda.empty_cache()
+        gc.collect()
+        
+        return query_embedding
+
+# === Centralized embedder instance ===
+embedder = CoPaliImageEmbedder()
+
+# === Update embed_images_with_copali ===
+def embed_images_with_copali(
+    image_paths: List[Path],
+    persist_dir: str = "vectorstores/image_db"
+) -> Chroma:
+    logger.info("🖼️ Embedding images with CoPali...")
+
+    if not image_paths:
+        logger.warning("⚠️ No image paths provided.")
+        return None
+
+    # embedder = CoPaliImageEmbedder()
+    logger.info(f"✅ CoPali loaded on device: {embedder.model.device}")
+
+    docs = [
+        Document(page_content=str(path), metadata={"source": str(path)}) 
+        for path in image_paths
+    ]
+
+    # vectorstore = Chroma.from_documents(
+    #     documents=docs,
+    #     embedding=embedder,
+    #     persist_directory=persist_dir,
+    # )
+    
+    # vectorstore.persist()
+    
+    vectorstore = Chroma(
+        embedding_function=embedder,
+        persist_directory=persist_dir
+    )
+
+    if len(docs) == 0:
+        logger.warning("⚠️ No documents to add to vectorstore from function embed_images_with_copali.")
+        return vectorstore
+    
+    vectorstore.add_documents(docs)
+    
+    logger.info(f"✅ Added {len(image_paths)} images to: {persist_dir} from function embed_images_with_copali.")
+    
+    return vectorstore
+
+# === Update batched_add_to_chroma ===
+def batched_add_to_chroma(docs: List[Document], persist_dir: str, batch_size: int = 4):
+    vectorstore = Chroma(
+        embedding_function=embedder, 
+        persist_directory=persist_dir
+    )
+    
+    print(f"📦 Adding {len(docs)} documents to Chroma in batches of {batch_size}...")
+
+    for i in tqdm(range(0, len(docs), batch_size), desc="📡 Embedding to Chroma", ncols=80):
+        batch_docs = docs[i:i + batch_size]
+        vectorstore.add_documents(batch_docs)
+
+    return vectorstore
+
+def embed_pdfs_as_images_with_copali(pdf_paths: List[Path], persist_dir: str = "vectorstores/image_db") -> Chroma:
+    logger.info("📄 Embedding each PDF page as image using CoPali...")
+
+    if not pdf_paths:
+        logger.warning("⚠️ No PDF files provided.")
+        return None
+
+    logger.info(f"✅ CoPali loaded on device: {embedder.model.device}")
+
+    page_image_paths = []
+    temp_dir = Path("tmp/pdf_pages")
+    temp_dir.mkdir(parents=True, exist_ok=True)
+
+    for pdf_path in pdf_paths:
+        try:
+            logger.info(f"🖼️ Converting {pdf_path.name} to images...")
+            images = convert_from_path(str(pdf_path), dpi=200)
+            for i, image in enumerate(images):
+                image_filename = f"{pdf_path.stem}-page-{i+1}.png"
+                image_path = temp_dir / image_filename
+                image.save(image_path)
+                page_image_paths.append((image_path, f"{pdf_path.name}#page={i+1}"))
         except Exception as e:
-            logger.error(f"❌ Failed to process {path.name}: {e}")
+            logger.error(f"❌ Failed to render {pdf_path.name}: {e}")
 
-    logger.info(f"✅ Captioning complete. {len(docs)} document(s) generated.")
-    return docs
+    if not page_image_paths:
+        raise RuntimeError("❌ No pages converted to images from PDFs.")
+
+    docs = [
+        Document(page_content=str(img_path), metadata={"source": pdf_id}) 
+        for (img_path, pdf_id) in page_image_paths
+    ]
+
+    image_files = [str(p[0]) for p in page_image_paths]
+
+    logger.info(f"🧠 Embedding {len(image_files)} PDF page images into Chroma DB...")
+    
+    # vectorstore = Chroma.from_documents(
+    #     documents=docs,
+    #     embedding=embedder,
+    #     persist_directory=persist_dir,
+    # )
+    # vectorstore.persist()
+    
+    vectorstore = batched_add_to_chroma(docs, persist_dir, batch_size=2)
+
+    logger.info(f"✅ Embedded {len(image_files)} PDF pages as images to: {persist_dir}")
+    return vectorstore
+
+# === Make embedder available for ImageRAGAgent or PDF embedding ===
+def get_global_embedder():
+    return embedder
+

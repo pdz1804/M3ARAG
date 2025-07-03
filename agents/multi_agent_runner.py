@@ -3,6 +3,11 @@
 from typing import List, Dict
 from agents.base import BaseAgent
 
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 class MultiAgentRunner:
     def __init__(self):
         self.agents: List[BaseAgent] = []
@@ -17,7 +22,7 @@ class MultiAgentRunner:
         for agent in self.agents:
             print(f"🤖 Running {agent.name}...")
             output = agent.run(self.shared_memory)
-            print(f"🧠 Output from {agent.name}:\n{output[:500]}\n{'-'*80}")
+            print(f"🧠 Output from {agent.name}:\n{output}\n{'-'*80}")
 
             self.shared_memory[agent.name] = output
 

@@ -29,12 +29,12 @@ input_items = [
     "https://arxiv.org/pdf/1706.03762.pdf",
     "https://arxiv.org/pdf/2503.13964.pdf",
     "https://arxiv.org/pdf/2501.06322.pdf",
-    "https://en.wikipedia.org/wiki/Transformer_(deep_learning_architecture)",
-    "https://en.wikipedia.org/wiki/Mamba_(deep_learning_architecture)",
-    "https://www.apple.com/",
-    "https://www.ibm.com/us-en",
-    "https://www.hp.com/us-en/home.html",
-    "https://www.dell.com/en-vn",
+    # "https://en.wikipedia.org/wiki/Transformer_(deep_learning_architecture)",
+    # "https://en.wikipedia.org/wiki/Mamba_(deep_learning_architecture)",
+    # "https://www.apple.com/",
+    # "https://www.ibm.com/us-en",
+    # "https://www.hp.com/us-en/home.html",
+    # "https://www.dell.com/en-vn",
 ]
 
 def parse_args():
