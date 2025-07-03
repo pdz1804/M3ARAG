@@ -35,11 +35,6 @@ There are three kinds of attention mechanisms used in the Transformer architectu
 🤖 Running ImageRAGAgent...
 INFO:rag_image.loader:🧠 Embedding query: tell me about the Transformer architecture. How many kinds o...
 INFO:agents.image_agent:🔍 Retrieved 5 relevant documents for question: tell me about the Transformer architecture. How many kinds of attention mechanism are there using in transformer architecture
-INFO:agents.image_agent:[Doc 0] source=arxiv_org_pdf_1706_03762_pdf.pdf#page=5 | content preview=tmp\pdf_pages\arxiv_org_pdf_1706_03762_pdf-page-5.png
-INFO:agents.image_agent:[Doc 1] source=arxiv_org_pdf_1706_03762_pdf.pdf#page=2 | content preview=tmp\pdf_pages\arxiv_org_pdf_1706_03762_pdf-page-2.png
-INFO:agents.image_agent:[Doc 2] source=arxiv_org_pdf_1706_03762_pdf.pdf#page=13 | content preview=tmp\pdf_pages\arxiv_org_pdf_1706_03762_pdf-page-13.png
-INFO:agents.image_agent:[Doc 3] source=arxiv_org_pdf_2501_06322_pdf.pdf#page=32 | content preview=tmp\pdf_pages\arxiv_org_pdf_2501_06322_pdf-page-32.png
-INFO:agents.image_agent:[Doc 4] source=arxiv_org_pdf_2503_13964_pdf.pdf#page=4 | content preview=tmp\pdf_pages\arxiv_org_pdf_2503_13964_pdf-page-4.png
 INFO:rag_image.caption.gemini_runner:📥 Received query: tell me about the Transformer architecture. How many kinds of attention mechanism are there using in transformer architecture
 INFO:rag_image.caption.gemini_runner:🔍 Retrieved 5 image(s):
 INFO:rag_image.caption.gemini_runner:  - tmp\pdf_pages\arxiv_org_pdf_1706_03762_pdf-page-5.png

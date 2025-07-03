@@ -69,6 +69,13 @@ Copy `.env.example` and rename to `.env`, then fill in your OpenAI key:
 
 ```env
 OPENAI_API_KEY=pdz-...
+GOOGLE_API_KEY=pdz-...
+```
+
+Currently not just need to depend on Qwen-2.5-VL-Instruct for generating caption for retrieved images. We can switch to use OpenAI API or Gemini API by changing the value in the `config.py` of:
+
+```
+IMAGE_CAPTIONING = "gemini" # "openai" or "qwen" (Qwen2.5-VL)
 ```
 
 ### 5. Run the full pipeline
