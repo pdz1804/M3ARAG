@@ -1,7 +1,12 @@
 # PDZ added 
 vectorstores/*
 data/*
-test/*
+test/__pycache__/*
+test/data/*
+test/*.profile_default
+test/local_output/*
+test/results/*
+test/docling/*
 others/*
 tmp/*
 
