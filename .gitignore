@@ -8,6 +8,7 @@ test/*.profile_default
 test/local_output/*
 test/results/*
 test/docling/*
+test/docling/
 others/*
 tmp/*
 
