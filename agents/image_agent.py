@@ -19,7 +19,7 @@ class ImageRAGAgent(BaseAgent):
         super().__init__("ImageRAGAgent")
 
         persist_path = "vectorstores/image_db"
-        pdf_dirs = [Path("data/store"), Path("data/extract/pdf")]
+        pdf_dirs = [Path("data/store"), Path("data/extract/pdf"), Path("local")]
         image_root_dir = Path("data/store")
 
         # === Step 1: Check if vectorstore exists ===

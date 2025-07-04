@@ -12,8 +12,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def load_documents_from_folder(
-    extract_path: str = "data/extract/pdf",
-    store_path: str = "data/store"
+    
 ) -> List[Document]:
     """
     Load and split all PDF files from extract and store folders.
@@ -21,10 +20,21 @@ def load_documents_from_folder(
     Returns:
         List[Document]: List of split document chunks.
     """
+    extract_path: str = "data/extract/pdf"
+    store_path: str = "data/store"
+    local_path: str = "local"
+    
+    folder_paths = [Path(p) for p in [extract_path, store_path, local_path]]
+    existing_folders = [p for p in folder_paths if p.exists()]
+
+    if not existing_folders:
+        logger.warning("⚠️ None of the target folders exist: extract/pdf, store, or local.")
+        return []
+
     try:
         all_docs = []
 
-        for folder_path in [extract_path, store_path]:
+        for folder_path in existing_folders:
             folder = Path(folder_path)
             if not folder.exists():
                 logger.warning(f"⚠️ Skipped missing folder: {folder}")

@@ -33,8 +33,8 @@ class MultiAgentRunner:
                 self.text_answer = output.strip()
 
         # === Fallback: if both text and image failed ===
-        text_empty = not getattr(self, "text_answer", "").strip() or self.text_answer.lower() == "no answer found."
-        image_empty = not getattr(self, "image_answer", "").strip() or self.image_answer.lower() == "no answer found."
+        text_empty = not getattr(self, "text_answer", "").strip() or self.text_answer.lower() == "No answer found."
+        image_empty = not getattr(self, "image_answer", "").strip() or self.image_answer.lower() == "No answer found."
 
         if text_empty and image_empty:
             print("⚠️ Both TextRAG and ImageRAG returned empty or useless responses.")

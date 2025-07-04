@@ -12,7 +12,7 @@ from langchain_openai import ChatOpenAI
 logger = logging.getLogger(__name__)
 
 TEMPLATE = """Use the following context to answer the question.
-If unsure, say you don't know. Always cite the source.
+If unsure, say "No answer found.". Always cite the source.
 
 {context}
 

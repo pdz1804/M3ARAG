@@ -20,15 +20,22 @@ def start_rag_chat(use_text: bool = False, use_image: bool = False):
             while True:
                 try:
                     question = input("❓ Ask: ").strip()
+                    if not question:
+                        print("⚠️ Please enter a question.")
+                        continue
+                    
                     if question.lower() in {"exit", "quit"}:
                         print("👋 Goodbye!")
                         break
+                    
                     answer = answer_question(
                         question,
                         use_text=use_text,
                         use_image=use_image,
                     )
+                    
                     print(f"\n💬 Final Answer:\n{answer}\n" + "-" * 80)
+                    
                 except KeyboardInterrupt:
                     print("\n👋 Exiting...")
                     break
@@ -52,10 +59,17 @@ def start_rag_chat(use_text: bool = False, use_image: bool = False):
             while True:
                 try:
                     question = input("❓ Ask: ").strip()
+                    
                     if question.lower() in {"exit", "quit"}:
                         print("👋 Goodbye!")
                         break
+                    
+                    if not question:
+                        print("⚠️ Please enter a question.")
+                        continue
+                    
                     answer = chain.invoke(question)
+                    
                     print(f"\n💬 {answer}\n" + "-" * 80)
                 except KeyboardInterrupt:
                     print("\n👋 Exiting...")
