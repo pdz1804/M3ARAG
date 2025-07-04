@@ -3,6 +3,7 @@ vectorstores/*
 data/*
 test/__pycache__/*
 test/data/*
+test/*.pdf
 test/*.profile_default
 test/local_output/*
 test/results/*
