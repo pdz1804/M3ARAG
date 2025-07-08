@@ -94,11 +94,17 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--ingest", action="store_true", help="Only ingest documents")
     parser.add_argument("--chat", action="store_true", help="Enable chat mode")
+    parser.add_argument("--app", action="store_true", help="Run Streamlit app instead of CLI")
     return parser.parse_args()
 
 def main():
     print("=== AgenticRAG Pipeline ===")
     args = parse_args() 
+    
+    if args.app:
+        import subprocess
+        subprocess.run(["streamlit", "run", "chat_streamlit.py"])
+        return
     
     # === Paths ===
     STORE_DIR = Path("data/store")

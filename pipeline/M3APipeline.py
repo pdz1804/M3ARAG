@@ -100,8 +100,13 @@ class M3APipeline:
             logger.warning("Multi-agent system not initialized. Please call ingest_cfg() first if you want to use Agents for reasoning.")
             return 
         
-        # Pass context + question into the multi-agent system
-        self.multi_agent.run({"question": question}, visual_results, text_results)
+        # Run multi-agent reasoning
+        final_output = self.multi_agent.run(
+            {"question": question}, visual_results, text_results
+        )
+
+        return final_output if final_output else "⚠️ No answer generated."
+
 
 # # Example usage of the M3APipeline class
 # def main():

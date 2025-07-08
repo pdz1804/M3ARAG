@@ -46,6 +46,6 @@ def get_text_captioning_runner(backend: str = "qwen") -> RunnableLambda:
         return RunnableLambda(generate_caption_with_qwen)
 
     else:
-        raise ValueError(f"Unsupported backend: {backend}")
+        raise ValueError(f"Text QA model: Unsupported backend: {backend}")
 
 

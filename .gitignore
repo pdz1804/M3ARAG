@@ -13,6 +13,7 @@ others/*
 tmp/*
 chroma_db/*
 local/*
+local_old/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

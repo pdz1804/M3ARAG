@@ -13,3 +13,4 @@ def run_chat(pipeline):
             pipeline.process_query(question)
     except KeyboardInterrupt:
         print("\n👋 Chat interrupted.")
+
