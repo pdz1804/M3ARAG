@@ -4,7 +4,7 @@
 This project is a fully modular **Multi-Modal Multi-Agent Retrieval-Augmented Generation (RAG)** system capable of processing **PDFs, HTMLs, images, and tables** for answering questions using a pipeline of specialized agents:
 
 - 🔍 `TextAgent` – performs text-based retrieval over documents
-- 🔍 `VisualAgent` – performs image-based retrieval over documents (NOT DONE)
+- 🔍 `VisualAgent` – performs image-based retrieval over documents 
 - 🧠 `GeneralizeAgent` – merges multimodal answers and resolves conflicts
 - 📝 `FinalizeAgent` – generates clean, concise final responses
 
@@ -17,15 +17,16 @@ It supports local document extraction via [Docling](https://github.com/ds4sd/doc
 ```
 AgenticRAG_PDZ/
 ├── agents/                 # Modular agent logic (Text, Generalize, Finalize)
-├── app/                    # Chat launcher interface (agent mode entrypoint)
+├── pipeline/               # Pipeline and Chat launcher interface (agent mode entrypoint)
 ├── data/
 │   ├── store/              # Raw downloaded files (PDF, HTML, etc.)
 │   └── extract/            # Converted PDFs, extracted images/tables
-├── download/               # Download logic (e.g., HTML/PDF fetchers)
-├── extract/                # File processing pipelines (Docling wrappers)
-├── rag_text/               # RAG pipeline: loader, embedding, vectorstore
+├── RAG/                    # RAG system
+├── config/                 # Config files for RAG, Agents and Prompt file
+├── rag_text/               # RAG text captioning
+├── rag_image/              # RAG image captioning
 ├── utils/                  # Helper utilities (e.g., process_documents)
-├── vectorstores/           # Persisted Chroma vectorstore
+├── test/                   # Testing places
 ├── main.py                 # Main entrypoint
 ```
 
@@ -72,29 +73,19 @@ OPENAI_API_KEY=pdz-...
 GOOGLE_API_KEY=pdz-...
 ```
 
-Currently not just need to depend on Qwen-2.5-VL-Instruct for generating caption for retrieved images. We can switch to use OpenAI API or Gemini API by changing the value in the `config.py` of:
-
-```
-IMAGE_CAPTIONING = "gemini" # "openai" or "qwen" (Qwen2.5-VL)
-```
-
 ### 5. Run the full pipeline
 
 If you want to run RAG-flow individually without Agents or with Agents:
 
 ```bash
-# Use both text and image agents
-python main.py --text --image
+# Ingest data only
+python main.py --ingest
 
-# Use text only
-python main.py --text
+# Use ingest and chat 
+python main.py --ingest --chat
 
-# Use image only
-python main.py --image
-
-# Use standard text-only fallback (no multi-agent)
-python main.py
-
+# or
+python main.py --chat
 ```
 
 This will:
@@ -109,7 +100,8 @@ This will:
 
 | Agent            | Description |
 |------------------|-------------|
-| `TextRAGAgent`   | Answers questions by retrieving from embedded text chunks |
+| `TextAgent`      | Answers questions by retrieving from embedded text chunks |
+| `ImageAgent`      | Answers questions by retrieving from embedded images of pages |
 | `GeneralizeAgent`| Combines answers from multiple modalities (text, image) |
 | `FinalizeAgent`  | Generates clean and concise answers for delivery |
 
@@ -118,9 +110,9 @@ This will:
 ## 📥 Input Types Supported
 
 - ✅ PDF documents (`.pdf`)
-- ✅ HTML pages (converted to PDF)
+- ✅ HTML, MD, PPTX, CSV, DOCX, TXT (converted to PDF)
 - ✅ Extracted images (captioning + indexing coming soon)
-- 🧪 Support for `.docx`, `.pptx`, `.md` being tested
+- 🧪 Support for `audio`, `.json`, `.xml` being tested
 
 ---
 
@@ -143,18 +135,6 @@ This will:
 | Agent state memory        | 🔜 Planned |
 | Upload-your-own-doc       | ✅ Supported (manual) |
 | Beam-search for retrieval | 🔜 Planned |
-
----
-
-## 🧪 Testing
-
-You can test document processing independently via:
-
-```bash
-python -m utils.process_documents
-```
-
-Or test individual agent logic in `agents/`.
 
 ---
 
