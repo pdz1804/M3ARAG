@@ -11,6 +11,8 @@ test/docling/*
 test/docling/
 others/*
 tmp/*
+chroma_db/*
+local/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
