@@ -86,6 +86,9 @@ python main.py --ingest --chat
 
 # or
 python main.py --chat
+
+# Run it on streamlit: by uploading docs or inputing urls
+python main.py --app
 ```
 
 This will:
@@ -122,7 +125,7 @@ This will:
 - 📚 [SentenceTransformers](https://www.sbert.net/)
 - 📦 [ChromaDB](https://www.trychroma.com/)
 - 🔍 [Docling](https://github.com/ds4sd/docling)
-- 🤖 OpenAI GPT (GPT-4o-mini used for generation)
+- 🤖 OpenAI GPT (GPT-4o-mini used for generation), Gemini, Qwen is supported
 
 ---
 
