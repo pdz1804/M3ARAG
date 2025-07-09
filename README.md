@@ -15,7 +15,7 @@ It supports local document extraction via [Docling](https://github.com/ds4sd/doc
 ## 📁 Project Structure
 
 ```
-AgenticRAG_PDZ/
+M3ARAG/
 ├── agents/                 # Modular agent logic (Text, Generalize, Finalize)
 ├── pipeline/               # Pipeline and Chat launcher interface (agent mode entrypoint)
 ├── data/
