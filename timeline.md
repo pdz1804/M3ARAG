@@ -53,5 +53,30 @@
 
 --- 
 
-# 09/07/2025
+# 11/07/2025
+
+- The **multiagent system** now consists of:
+  - **Text Agent + Image Agent**: For generating insights from the retrieved contexts of the RAG system 
+  - **Generalize Agent** would combine and generalize the answers from TextAgent and ImageAgent for each question
+  - **Planning Agent** would receive the query from the user and then separates it into several "tasks" or questions for retrieving many information from the RAG system. 
+  - **Merge Agent** would combine all the responses from the Generalize Agent and merge them into a response which would answer the initial query from the user.
+  - **Verfier Agent** would score the combined answer of the Merge Agent and then telling if we need to query for more information by generating following up questions for continually retrieve information. 
+
+- Currently we add some new information in the `agent_config.py` for `max_loop` for reasking the following up questions from **Verifier Agent**, `max_tasks` for the maximum number of decomposed tasks / questions that we would handle in a single iteration and `threshold` for the score for which the answer is good enough for returning to the user.
+- We have fixed `chat_streamlit.py` for updating the new code into it and let the user chat with their uploading documents. 
+- We have make the simplified design for our system using Drawio. 
+
+**Next things:**
+
+- Ask for suggestions and comments on our current implementation.
+- Small bug not fix is that for TextRAG the chunk for PDF start the page at 1 but ImageRAG start at 0.
+- We have not rechecked the code for using Qwen for response in place of openai and gemini. 
+- We have only handled CSV -> TXT and not yet TXT -> PDF yet. 
+- We could make use of docling to handle JSON, Audio (.mp3, .wav) also because they can provide us JSON & Audio -> TXT / MD. We could later transform this to PDFs.
+- Should come up with the design for our system
+
+--- 
+
+
+
 

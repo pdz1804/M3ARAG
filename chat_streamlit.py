@@ -1,8 +1,24 @@
-# chat_streamlit.py
+"""
+chat_streamlit.py
+
+This script defines the Streamlit frontend interface for the M3ARAG (Multimodal Multi-Agent RAG) system.
+It allows users to upload documents or input URLs, processes the data through a multimodal RAG pipeline,
+and enables interactive Q&A over the ingested content using multiple agents.
+
+Main Features:
+- Document upload and URL-based input
+- Normalization, extraction, and ingestion pipeline
+- Agent-based RAG querying with chat history
+- Logging and traceability of document processing
+"""
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 import streamlit as st
 from pathlib import Path
 import json
-
 from utils.document_processor import DocumentProcessor, copy_pdfs_to_merge_dir
 from pipeline.M3APipeline import M3APipeline
 from config.agent_config import agent_config
@@ -15,6 +31,16 @@ MERGE_DIR = Path("data/merge")
 LOCAL_DIR = Path("local")
 
 def run_agenticrag_streamlit():
+    """
+    Main entry point for the Streamlit application.
+
+    Handles:
+    - Uploading and processing documents from user input (file or URL)
+    - Normalizing and indexing documents into the RAG system
+    - Creating and running the M3ARAG pipeline
+    - Interactive chat interface for querying document knowledge
+    - Maintaining session state and chat history
+    """
     st.title("📄 M3ARAG Document Understanding")
 
     processor = DocumentProcessor(store_dir=STORE_DIR, extract_dir=EXTRACT_DIR)
@@ -33,6 +59,8 @@ def run_agenticrag_streamlit():
                     with open(path, "wb") as f:
                         f.write(file.getbuffer())
                     input_items.append(str(path))
+                
+                logger.info(f"Uploaded {len(uploaded_files)} files: {[f.name for f in uploaded_files]}")
 
         elif mode == "🌐 Enter URLs":
             url_input = st.text_area("Enter URLs (comma or newline separated)", key="url_text_input")
@@ -50,19 +78,24 @@ def run_agenticrag_streamlit():
 
         if input_items and st.button("🚀 Process Documents"):
             with st.spinner("Processing..."):
+                logger.info("🔧 Starting document processing...")
                 input_to_downloaded, input_to_normalized = processor.process_all(input_items)
+                logger.info("✅ Document processing completed.")
 
-                # Save mappings
+                # Save mappings for traceability
                 Path("data").mkdir(parents=True, exist_ok=True)
                 with open("data/input_to_output_mapping.json", "w", encoding="utf-8") as f:
                     json.dump(input_to_downloaded, f, indent=2, ensure_ascii=False)
                 with open("data/input_to_normalized_mapping.json", "w", encoding="utf-8") as f:
                     json.dump(input_to_normalized, f, indent=2, ensure_ascii=False)
 
+                logger.info("📁 Saved input-output mappings.")
+
                 # Merge PDFs
                 copy_pdfs_to_merge_dir([Path("data/extract/pdf"), STORE_DIR, LOCAL_DIR], MERGE_DIR)
-
-                # Ingest pipeline
+                logger.info("📎 PDFs merged into 'data/merge' directory.")
+                
+                # Build RAG pipeline and ingest
                 pipeline = M3APipeline(
                     pdf_dir="data/merge",
                     index_dir="data/merge/index",
@@ -71,12 +104,15 @@ def run_agenticrag_streamlit():
                     ingest_only=False
                 )
                 pipeline.ingest_cfg()
+                logger.info("🔍 Indexing complete.")
 
+                # Store to session
                 st.session_state["chat_pipeline"] = pipeline
                 st.session_state["chat_history"] = []
                 st.session_state["chat_mode"] = True  # 🚀 switch to pure chat view
 
             st.success("✅ Documents processed and indexed!")
+            logger.info("🚀 Pipeline is ready. Switching to chat mode.")
             st.rerun()
 
     # === Chat Interface ===
@@ -92,11 +128,13 @@ def run_agenticrag_streamlit():
 
         user_input = st.chat_input("Ask a question...")
         if user_input:
+            logger.info(f"🧠 Received question: {user_input}")
             with st.chat_message("user"):
                 st.markdown(user_input)
 
             with st.spinner("Thinking..."):
                 answer = st.session_state["chat_pipeline"].process_query(user_input)
+                logger.info(f"✅ Answer generated.")
 
             with st.chat_message("assistant"):
                 st.markdown(answer if answer else "⚠️ No answer generated.")
@@ -104,10 +142,8 @@ def run_agenticrag_streamlit():
             st.session_state["chat_history"].append((user_input, answer if answer else "No answer."))
 
         if st.button("🔄 Reset Chat"):
-            st.session_state.pop("chat_pipeline", None)
-            st.session_state.pop("chat_history", None)
-            st.session_state.pop("url_inputs", None)
-            st.session_state["chat_mode"] = False  # 👈 go back to upload screen
+            st.session_state.clear()
+            logger.info("🔄 Chat reset.")
             st.rerun()
 
 if __name__ == "__main__":

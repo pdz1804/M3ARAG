@@ -1,5 +1,24 @@
-import logging
+"""
+agents/verifier_agent.py
 
+This module defines the `VerifierAgent`, responsible for evaluating the final merged answer
+in a multi-agent RAG system. It assesses answer quality based on relevance, completeness,
+correctness, and clarity, then returns a score and feedback.
+
+Core Features:
+- Uses a configurable LLM (OpenAI or HuggingFace-based) to evaluate generated answers.
+- Parses response to extract evaluation text, score (1-10), and follow-up questions.
+- Determines whether the answer needs improvement based on a score threshold.
+
+Typical Usage:
+    agent = VerifierAgent(qa_model="openai", threshold=7)
+    feedback = agent.run({
+        "question": "What is Tesla's expansion plan?",
+        "merged_answer": "Tesla will open a factory in Singapore..."
+    })
+"""
+
+import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -30,6 +49,22 @@ class VerifierAgent(BaseAgent):
             self.chain = prompt | HuggingFacePipeline(pipeline=llm) | StrOutputParser()
 
     def run(self, input_data: dict) -> dict:
+        """
+        Evaluates the merged answer against the original user question using a scoring rubric.
+
+        Args:
+            input_data (dict): Dictionary with the following keys:
+                - 'question' (str): The original user question.
+                - 'merged_answer' (str): The answer to evaluate.
+
+        Returns:
+            dict: A dictionary containing:
+                - 'score' (int): Score between 1 and 10.
+                - 'needs_retry' (bool): True if score < threshold.
+                - 'evaluation' (str): Explanation of the score.
+                - 'merged_answer' (str): The original answer evaluated.
+                - 'follow_up_questions' (list[str], optional): Suggestions for improvement if needed.
+        """
         question = input_data.get("question", "")
         answer = input_data.get("merged_answer", "")
         logger.info("VerifierAgent scoring final merged answer.")

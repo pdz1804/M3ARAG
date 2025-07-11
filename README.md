@@ -3,10 +3,15 @@
 
 This project is a fully modular **Multi-Modal Multi-Agent Retrieval-Augmented Generation (RAG)** system capable of processing **PDFs, HTMLs, images, and tables** for answering questions using a pipeline of specialized agents:
 
-- 🔍 `TextAgent` – performs text-based retrieval over documents
-- 🔍 `VisualAgent` – performs image-based retrieval over documents 
-- 🧠 `GeneralizeAgent` – merges multimodal answers and resolves conflicts
-- 📝 `FinalizeAgent` – generates clean, concise final responses
+- `Text Agent` + `Image Agent`: For generating insights from the retrieved contexts of the RAG system 
+
+- `Generalize Agent` would combine and generalize the answers from TextAgent and ImageAgent for each question
+
+- `Planning Agent` would receive the query from the user and then separates it into several "tasks" or questions for retrieving many information from the RAG system. 
+
+- `Merge Agent` would combine all the responses from the Generalize Agent and merge them into a response which would answer the initial query from the user.
+
+- `Verfier Agent` would score the combined answer of the Merge Agent and then telling if we need to query for more information by generating following up questions for continually retrieve information. 
 
 It supports local document extraction via [Docling](https://github.com/ds4sd/docling), embedding with SentenceTransformers, and multi-agent orchestration.
 
@@ -18,8 +23,9 @@ It supports local document extraction via [Docling](https://github.com/ds4sd/doc
 M3ARAG/
 ├── agents/                 # Modular agent logic (Text, Generalize, Finalize)
 ├── pipeline/               # Pipeline and Chat launcher interface (agent mode entrypoint)
-├── data/
+├── data/                   # Storing the downloaded files
 │   ├── store/              # Raw downloaded files (PDF, HTML, etc.)
+│   ├── merge/              # Single processing location for indexing of RAG.
 │   └── extract/            # Converted PDFs, extracted images/tables
 ├── RAG/                    # RAG system
 ├── config/                 # Config files for RAG, Agents and Prompt file
@@ -27,7 +33,10 @@ M3ARAG/
 ├── rag_image/              # RAG image captioning
 ├── utils/                  # Helper utilities (e.g., process_documents)
 ├── test/                   # Testing places
-├── main.py                 # Main entrypoint
+├── main.py                 # Main entry point
+├── chat_streamlit.py       # Main function for chatting via streamlit
+├── README.md               # Main information about the repository
+├── timeline.md             # Tasks and next tasks that we have done
 ```
 
 ---
@@ -106,7 +115,9 @@ This will:
 | `TextAgent`      | Answers questions by retrieving from embedded text chunks |
 | `ImageAgent`      | Answers questions by retrieving from embedded images of pages |
 | `GeneralizeAgent`| Combines answers from multiple modalities (text, image) |
-| `FinalizeAgent`  | Generates clean and concise answers for delivery |
+| `PlanningAgent` |     Decomposes complex questions into structured sub-questions. |
+| `MergeAgent` |        Fuses sub-agent responses into a coherent final answer. |
+| `VerifierAgent` |    Evaluates merged answer, determines quality, and suggests refinement. |
 
 ---
 
@@ -115,7 +126,7 @@ This will:
 - ✅ PDF documents (`.pdf`)
 - ✅ HTML, MD, PPTX, CSV, DOCX, TXT (converted to PDF)
 - ✅ Extracted images (captioning + indexing coming soon)
-- 🧪 Support for `audio`, `.json`, `.xml` being tested
+- 🧪 Support for `audio`, `.json`, `.xml` being tested for later release
 
 ---
 
@@ -126,18 +137,6 @@ This will:
 - 📦 [ChromaDB](https://www.trychroma.com/)
 - 🔍 [Docling](https://github.com/ds4sd/docling)
 - 🤖 OpenAI GPT (GPT-4o-mini used for generation), Gemini, Qwen is supported
-
----
-
-## 📌 Optional Enhancements
-
-| Feature                   | Status      |
-|---------------------------|-------------|
-| ImageRAGAgent             | 🔜 In Progress |
-| GUI via Streamlit         | 🔜 Planned |
-| Agent state memory        | 🔜 Planned |
-| Upload-your-own-doc       | ✅ Supported (manual) |
-| Beam-search for retrieval | 🔜 Planned |
 
 ---
 

@@ -1,23 +1,29 @@
 """
 pipeline/M3APipeline.py
 
-This module defines the M3APipeline class, which orchestrates an end-to-end multimodal
-retrieval-augmented generation (RAG) pipeline combining PDF document ingestion,
-multimodal retrieval (text and image), and multi-agent question answering (M3A: Multimodal Multi-Agent).
+This module defines the M3APipeline class, which orchestrates an end-to-end
+multimodal retrieval-augmented generation (RAG) pipeline for understanding documents.
+
+It combines PDF ingestion, multimodal (text + image) retrieval, and a multi-agent
+LLM system to answer complex queries with iterative refinement.
 
 Key Responsibilities:
-- Ingests a directory of PDFs and builds RAG indices (textual and visual).
-- Retrieves top-k relevant chunks (text + images) in response to a user query.
-- Dispatches multimodal context to a configurable multi-agent system with specialized roles:
-    • TextAgent         Answers based on retrieved text.
-    • ImageAgent        Answers based on image regions.
-    • GeneralizeAgent   Merges or re-evaluates responses.
-    • FinalizeAgent     Generates final user-facing answer.
+- Ingest and index PDF documents into text and image vector stores.
+- Retrieve top-k relevant content chunks in response to user questions.
+- Orchestrate multi-agent reasoning using a configurable agent setup.
 
-Usage:
+Supported Agents:
+- TextAgent:         Answers using retrieved textual chunks.
+- ImageAgent:        Answers using image regions or page-level visual context.
+- GeneralizeAgent:   Synthesizes answers from multiple agents into a single response.
+- PlanningAgent:     Decomposes complex questions into structured sub-questions.
+- MergeAgent:        Fuses sub-agent responses into a coherent final answer.
+- VerifierAgent:     Evaluates merged answer, determines quality, and suggests refinement.
+
+Usage Example:
     pipeline = M3APipeline(pdf_dir, index_dir, rag_config, agent_config)
-    pipeline.ingest_cfg()            # Index PDF documents
-    pipeline.process_query(question)  # Ask a multimodal question
+    pipeline.ingest_cfg()                     # Index documents
+    final_answer = pipeline.process_query("What are the company's core products?")
 """
 import logging
 
@@ -37,12 +43,33 @@ warnings.filterwarnings("ignore")
 
 class M3APipeline:
     """
-    End-to-end pipeline that:
-      Ingests one or more PDF documents via a RAG indexer
-      Answers queries by retrieving multimodal context and dispatching it through the M3ARAG agents
-    """
+    Multimodal Multi-Agent Pipeline (M3APipeline) that manages end-to-end RAG-based
+    document understanding from ingestion to multimodal query answering.
 
+    This pipeline:
+    - Indexes documents (PDFs) into text and visual vector stores.
+    - Configures a multi-agent system with different LLM-based agents for specialized tasks.
+    - Orchestrates retrieval and multi-agent reasoning to answer user queries.
+
+    Agents can include:
+    - TextAgent: answers using retrieved text content.
+    - ImageAgent: answers using visual information.
+    - GeneralizeAgent: merges and generalizes responses from multiple agents.
+    - PlanningAgent: decomposes queries into sub-questions.
+    - MergeAgent: fuses multiple answers.
+    - VerifierAgent: evaluates merged answers for quality control.
+    """
     def __init__(self, pdf_dir, index_dir, rag_config, agent_config, ingest_only=False):
+        """
+        Initialize the M3APipeline.
+
+        Args:
+            pdf_dir (str): Directory containing the PDF documents to ingest.
+            index_dir (str): Directory where the text and image indices will be stored.
+            rag_config (dict): Configuration parameters for the RAG system (e.g., retrievers, top-k).
+            agent_config (dict): Configuration for which agents to enable and their corresponding models.
+            ingest_only (bool): If True, skip initializing agents and only build the index.
+        """
         # Initialize RAG indexer and multi-agent QA system
         os.makedirs(index_dir, exist_ok=True)
         self.multi_agent = None
@@ -61,10 +88,6 @@ class M3APipeline:
             qa_planning = agent_config.get("qa_planning", "openai")
             qa_merge = agent_config.get("qa_merge", "openai")
             qa_verifier = agent_config.get("qa_verifier", "openai")
-
-            # --- old code ---
-            # self.multi_agent = MultiAgentRunner()
-            # --- end old code ---
             
             # --- new code ---
             self.multi_agent = MultiAgentRunner(self.rag, agent_config)
@@ -86,25 +109,24 @@ class M3APipeline:
 
     def ingest_cfg(self) -> None:
         """
-        Build the RAG indices over the provided PDF files.
-        After calling this, the pipeline is ready to answer queries.
+        Ingest all PDF documents and build text and image-based vector indices.
+
+        This method must be called before querying, unless precomputed indices already exist.
         """
         self.rag.ingest(pdf_dir=self.pdf_dir, index_dir=self.index_dir)
 
     def process_query(self, question: str):
         """
-        Retrieve the top-k text segments and image pages for the question,
-        then run the Multi Agent Runner for question answering
+        Process a user query by retrieving relevant text and images, and dispatching them
+        through a configured multi-agent reasoning system.
 
         Args:
-            question: the user's natural-language question
-            top_k: how many images/text chunks to receive
+            question (str): Natural language question provided by the user.
 
+        Returns:
+            str: Final answer generated by the agent system.
         """
-        # --- new code ---
         return self.multi_agent.run(question)
-        # --- end new code ---
-
 
 # # Example usage of the M3APipeline class
 # def main():

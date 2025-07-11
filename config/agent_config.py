@@ -15,8 +15,8 @@ agent_config = {
     "qa_image": "gemini",            
     
     # --- new code --- 
-    "max_loop": 3,
-    "max_tasks": 2,
+    "max_loop": 6,
+    "max_tasks": 4,
     "threshold": 6,
     # --- end new code --- 
         

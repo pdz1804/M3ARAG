@@ -243,6 +243,24 @@ Follow-Up Questions:
 ---
 
 Question:
+What is Tesla's plan for international expansion?
+
+Answer:
+Tesla plans to expand into Southeast Asia, starting with a factory in Singapore in 2024. [Doc 1]
+
+Answer Evaluation:
+The answer is directly relevant to the question and mentions a concrete step Tesla is taking (opening a factory in Singapore). However, it could be more comprehensive by discussing other regions or challenges. Clarity is good, and the source is cited.
+
+Score: 8
+
+Follow-Up Questions:
+- Does Tesla plan to expand beyond Singapore?
+- What challenges might affect Tesla's international expansion?
+- Are there any projected timelines for other countries?
+
+---
+
+Question:
 {question}
 
 Answer:

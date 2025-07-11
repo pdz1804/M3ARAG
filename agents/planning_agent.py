@@ -1,5 +1,20 @@
-import logging
+"""
+agents/planning_agent.py
 
+This module implements the `PlanningAgent`, responsible for decomposing complex user queries
+into a set of smaller, focused sub-questions (tasks) to be answered independently.
+
+Key Responsibilities:
+- Loads a language model (OpenAI GPT-4o or Qwen via Hugging Face).
+- Applies a prompt template (`PLANNING_PROMPT`) to guide the decomposition process.
+- Parses and returns a list of task strings in JSON format.
+
+Typical Use:
+    agent = PlanningAgent(qa_model="openai")
+    tasks = agent.run({"question": "What are the challenges and opportunities in AI adoption?"})
+"""
+
+import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -29,6 +44,15 @@ class PlanningAgent(BaseAgent):
             self.chain = prompt | HuggingFacePipeline(pipeline=llm) | StrOutputParser()
 
     def run(self, input_data: dict) -> list:
+        """
+        Generates a list of subtasks based on a user query.
+
+        Args:
+            input_data (dict): A dictionary containing the user query under key "question".
+
+        Returns:
+            list: A list of subtask strings. Returns an empty list if parsing fails or no tasks are produced.
+        """
         question = input_data.get("question", "")
         logger.info(f"PlanningAgent generating tasks for: {question}")
 
