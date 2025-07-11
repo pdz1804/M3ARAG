@@ -29,85 +29,136 @@ logger = logging.getLogger(__name__)
 from typing import List, Dict, Optional
 from agents.base import BaseAgent
 from agents.registry import AGENTS
+import matplotlib.pyplot as plt
 
 class MultiAgentRunner:
-    def __init__(self):
-        self.agents: List[BaseAgent] = []
-        self.shared_memory: Dict[str, str] = {}
-
-    def register_agent(self, agent: str, qa_model: str = "qwen"):
-        cls = AGENTS[agent]
-        agent = cls(name=agent, qa_model=qa_model)
-        self.agents.append(agent)
-        logger.info(f"Registered agent: {agent.name} with model: {qa_model}")
-
-    def run(self, initial_input: Dict[str, str],
-            visual_contexts: Optional[List[dict]] = None,
-            textual_contexts: Optional[List[dict]] = None) -> str:
+    def __init__(self, rag, config):
+        self.score_history = []
         
-        # a place to call this method is in pipeline/M3APipeline.py
-        # initial_input = {"question": "What is the capital of France?"} ==> this would be shared
-        # When update is called:
-        # 1. If the key already exists, it updates the value.
-        # 2. If the key does not exist, it adds the key-value pair.
-        logger.info(f"Running MultiAgentPipeline for question: {initial_input.get('question', 'N/A')}")
-        self.shared_memory.update(initial_input)
+        # --- new code ---
+        self.rag = rag              # ← inject RAG system
+        self.config = config        # ← agent_config
+        self.agents = {}
+        self.shared_memory = {}
+        self.memory_log = []        # For storing the merged context across iterations
+        
+        self.max_loop = config.get("max_loop", 3)
+        self.max_tasks = config.get("max_tasks", 5)
+        # --- end new code ---
+        
+        self.all_sub_answers = []  # NEW
 
-        for agent in self.agents:
-            logger.info(f"* Running {agent.name}...")
+    def register_agent(self, agent_name: str, qa_model: str = "qwen"):
+        cls = AGENTS[agent_name]
+        agent_instance = cls(name=agent_name, qa_model=qa_model)
+        self.agents[agent_name] = agent_instance
+        logger.info(f"Registered agent: {agent_name} with model: {qa_model}")
 
-            if agent.name == "ImageAgent" and visual_contexts is not None:
-                logger.info(f"Visual Contexts:")
-                for ctx in visual_contexts:
-                    img = ctx['image']
-                    logger.info(f"{ctx['document_id']} | Page {ctx['page_number']} | "
-                                f"Score {ctx['score']:.2f} | Size {img.size[0]}x{img.size[1]}")
-                output = agent.run(self.shared_memory, visual_contexts)
-                logger.info(f"Output from {agent.name}:\n{output[:1000]}\n")
+    # --- new code ---
+    def run(self, question: str) -> str:
+        self.score_history = []
+        
+        logger.info(f"💬 User Question: {question}")
+        self.shared_memory["question"] = question
+        self.memory_log = []  # Reset memory for this session
 
-            elif agent.name == "TextAgent" and textual_contexts is not None:
-                logger.info("Textual Contexts:")
-                for ctx in textual_contexts:
-                    preview = ctx['chunk'][:200].replace('\n', ' ').strip()
-                    logger.info(f"{ctx['chunk_pdf_name']} | Page {ctx['pdf_page_number']} | "
-                                f"Score {ctx['score']:.2f} | Preview: {preview}...")
-                output = agent.run(self.shared_memory, textual_contexts)
-                logger.info(f"Output from {agent.name}:\n{output}\n")
+        # Initialize agents (if not done in __init__)
+        planning_agent = self.agents["PlanningAgent"]
+        merge_agent = self.agents["MergeAgent"]
+        verifier_agent = self.agents["VerifierAgent"]
 
-            else:
-                output = agent.run(self.shared_memory)
-                logger.info(f"Output from {agent.name}:\n{output}\n")
+        loop_count = 0
+        max_loop = self.max_loop
+        max_tasks = self.max_tasks
+        
+        self.all_sub_answers = []
+        self.subquery_to_answer = {}
 
-            # - Agents to share intermediate outputs (e.g., GeneralizeAgent might read from both "TextAgent" and "ImageAgent" keys).
-            # - A centralized shared_memory store for agent-to-agent communication.
-            # - You to debug easily by printing the full memory.
-            # - Only contains the latest output from each agent.
-            # self.shared_memory = {
-            #     "question": "What is Mamba in deep learning?",
-            #     "TextAgent": "Mamba is a state space model proposed by Meta AI...",
-            #     "ImageAgent": "No relevant diagrams found.",
-            #     "GeneralizeAgent": "Mamba is a sequence modeling approach combining...",
-            #     "FinalizeAgent": "Mamba is a state-of-the-art model architecture introduced by Meta AI in 2024 for efficient sequence modeling tasks."
-            # }
-            self.shared_memory[agent.name] = output
+        while loop_count < max_loop:
+            logger.info(f"🔁 Iteration {loop_count+1}")
+            # --- old code --- 
+            # sub_queries = planning_agent.run({"question": question})[:max_tasks]
+            # --- end old code ---
             
-            # Special logic after Text and Image RAG agents
-            if agent.name == "ImageAgent":
-                self.image_answer = output.strip()
+            # --- new code ---
+            if loop_count == 0:
+                sub_queries = planning_agent.run({"question": question})[:max_tasks]
+            else:
+                sub_queries = verification.get("follow_up_questions", [])[:max_tasks]
+            # --- end new code ---
+            
+            # Remove duplicate subqueries
+            sub_queries = [q for q in sub_queries if q not in self.subquery_to_answer]
+            
+            for sub_query in sub_queries:
+                results = self.rag.retrieve_results(sub_query)
+                text_results = results["text_results"]
+                visual_results = results["visual_results"]
 
-            if agent.name == "TextAgent":
-                self.text_answer = output.strip()
+                out = self._run_sub_agents(sub_query, text_results, visual_results)
+                
+                self.subquery_to_answer[sub_query] = out
+                self.all_sub_answers.append(out)
 
-        # === Fallback: if both text and image failed ===
-        text_empty = not getattr(self, "text_answer", "").strip() or self.text_answer.lower() == "No answer found."
-        image_empty = not getattr(self, "image_answer", "").strip() or self.image_answer.lower() == "No answer found."
+            # Merge and Verify
+            # Combine current and past merged context
+            if self.memory_log:
+                prev_merged = self.memory_log[-1]
+                self.all_sub_answers.append(prev_merged)
+                
+            merged_answer = merge_agent.run({"generalized_answers": self.all_sub_answers})
+            self.memory_log.append(merged_answer)
 
-        if text_empty and image_empty:
-            logger.warning("Both TextRAG and ImageRAG returned empty or useless responses.")
-            return "No answer found."
+            verification = verifier_agent.run({
+                "question": question,
+                "merged_answer": merged_answer
+            })
+            
+            self.score_history.append(verification.get("score", 0))
 
-        # Return output from final agent
-        logger.info(f"Final output returned from last agent: {self.agents[-1].name}")
-        return output
+            if not verification["needs_retry"]:
+                logger.info("🎯 Final Answer:\n" + verification["merged_answer"])
+                logger.info("🧠 Verifier's Reasoning:\n" + verification["evaluation"])
+                print("\n✅ Final Answer:\n", verification["merged_answer"])
+                print("\n🧠 Verifier's Evaluation:\n", verification["evaluation"])
+                
+                self._plot_score_history()
+                
+                return merged_answer
+            else:
+                loop_count += 1
+
+        return "⚠️ Could not generate a satisfactory answer after multiple attempts."
+
+    def _run_sub_agents(self, question, text_ctx, visual_ctx):
+        local_memory = {"question": question}
+        
+        for name, agent in self.agents.items():
+            logger.info(f"🧠 Running {name}")
+            if name == "TextAgent":
+                output = agent.run(local_memory, text_ctx)
+            elif name == "ImageAgent":
+                output = agent.run(local_memory, visual_ctx)
+            elif name == "GeneralizeAgent":
+                output = agent.run(local_memory)
+            else:
+                continue  # Skip other agents 
+            
+            local_memory[name] = output
+            logger.info(f"✔ Output from {name}: {output[:500]}")
+            
+        return local_memory.get("GeneralizeAgent", "No answer.")
+
+    def _plot_score_history(self):
+        if not self.score_history:
+            return
+        plt.plot(range(1, len(self.score_history) + 1), self.score_history, marker='o')
+        plt.title("Verifier Score Across Iterations")
+        plt.xlabel("Iteration")
+        plt.ylabel("Score")
+        plt.grid(True)
+        plt.savefig("score_history.png")
+        plt.close()
+        logger.info("📈 Score plot saved to score_history.png")
 
 

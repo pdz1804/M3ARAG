@@ -4,13 +4,22 @@ agent_config = {
     "use_text": True,               # Whether to activate the TextAgent
     "use_image": True,              # Whether to activate the ImageAgent
     
-    # Shared QA model name for all agents (currently support: "qwen", "gemini", "openai")
+    # Shared QA model name for all agents - text (currently support: "qwen", "gemini", "openai")
     "qa_text": "openai",
+    "qa_generalize": "openai",         
+    "qa_merge": "openai",      
+    "qa_planning": "openai",
+    "qa_verifier": "openai",  
     
     # Shared QA model for image-based agents (currently support: "qwen", "gemini", "openai")             
     "qa_image": "gemini",            
-    "qa_generalize": "openai",         
-    "qa_finalize": "openai",          
+    
+    # --- new code --- 
+    "max_loop": 3,
+    "max_tasks": 2,
+    "threshold": 6,
+    # --- end new code --- 
+        
 }
 
 

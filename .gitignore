@@ -15,6 +15,7 @@ chroma_db/*
 local/*
 local_old/*
 myenv/
+*png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

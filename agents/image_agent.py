@@ -41,33 +41,6 @@ class ImageAgent(BaseAgent):
             return "No image context provided."
         
         images = [ctx["image"] for ctx in contexts if "image" in ctx]
-
-        # --- old code ---
-        # del contexts
-        # gc.collect()
-        # if torch.cuda.is_available():
-        #     torch.cuda.empty_cache()
-
-        # target_size = (512, 1024)
-        # resized_images = []
-        # for img in images:
-        #     # Create a copy to avoid modifying the original PIL image object directly
-        #     img_copy = img.copy()
-
-        #     # Use thumbnail to resize while maintaining aspect ratio,
-        #     # making sure the largest dimension fits within target_size.
-        #     # Image.Resampling.LANCZOS is a high-quality downsampling filter.
-        #     img_copy.thumbnail(target_size, Image.Resampling.LANCZOS)
-        #     resized_images.append(img_copy)
-            
-        # # === Save to temp files for Gemini ===
-        # image_paths = []
-        # for i, img in enumerate(resized_images):
-        #     with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
-        #         img.save(tmp.name, format="JPEG")
-        #         image_paths.append(tmp.name)
-        
-        # --- end old code ---
         
         image_paths = prepare_images(images)
         release_memory()

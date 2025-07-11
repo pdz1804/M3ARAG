@@ -46,6 +46,9 @@ class M3APipeline:
         # Initialize RAG indexer and multi-agent QA system
         os.makedirs(index_dir, exist_ok=True)
         self.multi_agent = None
+        self.rag = RAGSystem(rag_config)
+        self.index_dir = index_dir
+        self.pdf_dir = pdf_dir
 
         if ingest_only is False:
             self.use_text = agent_config.get("use_text", True)
@@ -55,9 +58,17 @@ class M3APipeline:
             qa_text = agent_config.get("qa_text", "openai")
             qa_image = agent_config.get("qa_image", "gemini")
             qa_generalize = agent_config.get("qa_generalize", "openai")
-            qa_finalize = agent_config.get("qa_finalize", "openai")
+            qa_planning = agent_config.get("qa_planning", "openai")
+            qa_merge = agent_config.get("qa_merge", "openai")
+            qa_verifier = agent_config.get("qa_verifier", "openai")
 
-            self.multi_agent = MultiAgentRunner()
+            # --- old code ---
+            # self.multi_agent = MultiAgentRunner()
+            # --- end old code ---
+            
+            # --- new code ---
+            self.multi_agent = MultiAgentRunner(self.rag, agent_config)
+            # --- end new code ---
 
             if self.use_text:
                 self.multi_agent.register_agent("TextAgent", qa_model=qa_text)
@@ -66,11 +77,12 @@ class M3APipeline:
                 self.multi_agent.register_agent("ImageAgent", qa_model=qa_image)
 
             self.multi_agent.register_agent("GeneralizeAgent", qa_model=qa_generalize)
-            self.multi_agent.register_agent("FinalizeAgent", qa_model=qa_finalize)
-
-        self.rag = RAGSystem(rag_config)
-        self.index_dir = index_dir
-        self.pdf_dir = pdf_dir
+            
+            # --- new code ---
+            self.multi_agent.register_agent("PlanningAgent", qa_model=qa_planning)
+            self.multi_agent.register_agent("MergeAgent", qa_model=qa_merge)
+            self.multi_agent.register_agent("VerifierAgent", qa_model=qa_verifier)
+            # --- end new code --- 
 
     def ingest_cfg(self) -> None:
         """
@@ -89,23 +101,9 @@ class M3APipeline:
             top_k: how many images/text chunks to receive
 
         """
-        # Retrieve multimodal context
-        results = self.rag.retrieve_results(question)
-        text_results = results["text_results"]
-        visual_results = results["visual_results"]
-
-        if self.multi_agent is None:
-            logger.info(f"Text results: {text_results[:500]}")
-            logger.info(f"Visual results: {visual_results}")
-            logger.warning("Multi-agent system not initialized. Please call ingest_cfg() first if you want to use Agents for reasoning.")
-            return 
-        
-        # Run multi-agent reasoning
-        final_output = self.multi_agent.run(
-            {"question": question}, visual_results, text_results
-        )
-
-        return final_output if final_output else "⚠️ No answer generated."
+        # --- new code ---
+        return self.multi_agent.run(question)
+        # --- end new code ---
 
 
 # # Example usage of the M3APipeline class

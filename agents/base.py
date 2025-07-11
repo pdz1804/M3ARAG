@@ -20,8 +20,12 @@ class BaseAgent(ABC):
     def __init__(self, name: str, qa_model: str = "qwen"):
         self.qa_model = qa_model
         self.name = name
+        self.tool_executor = None  # default
 
     @abstractmethod
     def run(self, input_data: dict) -> str:
         """Run the agent with input data and return output string."""
         pass
+    
+    def register_tools(self, tools: dict):
+        self.tool_executor = tools

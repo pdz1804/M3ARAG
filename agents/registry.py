@@ -27,7 +27,9 @@ logger = logging.getLogger(__name__)
 from agents.text_agent import TextAgent
 from agents.image_agent import ImageAgent
 from agents.generalize_agent import GeneralizeAgent
-from agents.finalize_agent import FinalizeAgent
+from agents.planning_agent import PlanningAgent
+from agents.merge_agent import MergeAgent
+from agents.verifier_agent import VerifierAgent
 
 # Build agents once and reuse
 # This later being called and initialized in the MultiAgentRunner
@@ -35,7 +37,12 @@ AGENTS = {
     "TextAgent": TextAgent,
     "ImageAgent": ImageAgent,
     "GeneralizeAgent": GeneralizeAgent,
-    "FinalizeAgent": FinalizeAgent,
+    
+    # --- new code ---
+    "PlanningAgent": PlanningAgent,
+    "MergeAgent": MergeAgent,
+    "VerifierAgent": VerifierAgent,
+    # --- end new code ---
 }
 
 
