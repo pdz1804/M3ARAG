@@ -21,7 +21,7 @@ It supports local document extraction via [Docling](https://github.com/ds4sd/doc
 
 ```
 M3ARAG/
-├── agents/                 # Modular agent logic (Text, Generalize, Finalize)
+├── agents/                 # Modular agent logic.
 ├── pipeline/               # Pipeline and Chat launcher interface (agent mode entrypoint)
 ├── data/                   # Storing the downloaded files
 │   ├── store/              # Raw downloaded files (PDF, HTML, etc.)
@@ -29,6 +29,9 @@ M3ARAG/
 │   └── extract/            # Converted PDFs, extracted images/tables
 ├── RAG/                    # RAG system
 ├── config/                 # Config files for RAG, Agents and Prompt file
+│   ├── agent_config.py     # Config for using Agents
+│   ├── rag_config.py       # Config for using RAG
+│   └── prompt.py           # Prompts Storage.
 ├── rag_text/               # RAG text captioning
 ├── rag_image/              # RAG image captioning
 ├── utils/                  # Helper utilities (e.g., process_documents)
