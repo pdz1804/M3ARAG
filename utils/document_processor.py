@@ -490,7 +490,8 @@ class DocumentProcessor:
             logger.info(f"\nProcessing item: {item}")
 
             # === If already downloaded and file exists, skip ===
-            if item in [existing_input_to_downloaded, existing_input_to_normalized]:
+            # if item in [existing_input_to_normalized, existing_input_to_downloaded]:
+            if item in existing_input_to_downloaded:
                 existing_path = Path(existing_input_to_downloaded[item])
                 if existing_path.exists():
                     logger.info(f"Skipping download, file already exists: {existing_path}")
@@ -509,10 +510,14 @@ class DocumentProcessor:
                     continue
 
             # === If already normalized and file exists, skip ===
-            if item in [existing_input_to_normalized, existing_input_to_downloaded]:
+            # if item in [existing_input_to_normalized, existing_input_to_downloaded]:
+            if item in existing_input_to_normalized:
                 norm_path = Path(existing_input_to_normalized[item])
                 if norm_path.exists():
                     logger.info(f"Skipping normalization, already exists: {norm_path}")
+                    # --- new code --- 
+                    # input_to_normalized[item] = str(norm_path.resolve())  # make sure it’s also recorded in output
+                    # --- end new code ---
                     continue
                 else:
                     logger.warning(f"Normalized file missing, reprocessing: {norm_path}")

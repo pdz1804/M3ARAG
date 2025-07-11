@@ -136,7 +136,7 @@ Image-based Answer:
 Final Combined Answer:
 """
 
-PLANNING_PROMPT = """
+PLANNING_PROMPT_JSON = """
 You are a planning agent. Your task is to decompose a complex user query into 2-3 subtasks.
 
 Instructions:
@@ -166,6 +166,29 @@ User Query:
 ---
 
 User Query:
+{question}
+"""
+
+# Simple bullet-style prompt (for Qwen and other small LMs)
+PLANNING_PROMPT_SIMPLE = """
+You are a helpful assistant that breaks down complex user questions into smaller parts.
+
+Instructions:
+- Think step by step.
+- Identify the key components of the user's question.
+- Write 2-3 independent sub-questions using bullet points.
+
+Example:
+
+User Question:
+What are the risks and benefits of using AI in education?
+
+- What are the risks of using AI in education?
+- What are the benefits of using AI in education?
+
+---
+
+User Question:
 {question}
 """
 

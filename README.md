@@ -76,7 +76,58 @@ pip install -r requirements.txt
 pip install sentence-transformers langchain openai chromadb docling python-dotenv
 ```
 
-### 4. Set up your environment variables
+### 4. Install Poppler
+
+#### Windows
+
+1. Download Poppler for Windows:
+   - Visit: https://github.com/oschwartz10612/poppler-windows/releases/
+   - Download the latest `.zip` file under **Assets** (e.g., `poppler-xx_xx_xx.zip`).
+
+2. Extract the zip to a location like `C:\poppler`.
+
+3. Add Poppler to PATH:
+   - Open *Start > Environment Variables*.
+   - Under **System Variables**, find and select `Path`, click **Edit**.
+   - Click **New** and add:
+     ```
+     C:\poppler\Library\bin
+     ```
+   - Click OK and restart your terminal.
+
+4. Verify installation:
+   ```bash
+   where pdfinfo
+   ```
+   You should see:
+   ```
+   C:\poppler\Library\bin\pdfinfo.exe
+   ```
+
+#### macOS (Homebrew)
+
+```bash
+brew install poppler
+```
+
+To verify:
+```bash
+which pdfinfo
+```
+
+#### Ubuntu/Linux
+
+```bash
+sudo apt update
+sudo apt install poppler-utils
+```
+
+To verify:
+```bash
+which pdfinfo
+```
+
+### 5. Set up your environment variables
 
 Copy `.env.example` and rename to `.env`, then fill in your keys:
 
@@ -85,7 +136,7 @@ OPENAI_API_KEY=pdz-...
 GOOGLE_API_KEY=pdz-...
 ```
 
-### 5. Run the full pipeline
+### 6. Run the full pipeline
 
 If you want to run RAG-flow individually without Agents or with Agents:
 

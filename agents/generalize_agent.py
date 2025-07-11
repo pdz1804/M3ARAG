@@ -47,6 +47,17 @@ class GeneralizeAgent(BaseAgent):
             qwen_llm = HuggingFacePipeline(pipeline=qwen_pipeline)
 
             self.chain = prompt | qwen_llm | StrOutputParser()
+        
+        elif "gemini" in qa_model:
+            try:
+                from langchain_google_genai import ChatGoogleGenerativeAI
+                self.chain = prompt | ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0) | StrOutputParser()
+            except Exception as e:
+                logger.error(f"Failed to initialize Gemini model: {e}")
+                raise e
+
+        else:
+            raise ValueError(f"Unknown QA model: {qa_model}")
 
     def run(self, input_data: dict) -> str:
         text_resp = input_data.get("TextAgent", "")

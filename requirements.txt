@@ -15,3 +15,15 @@ pdfkit
 google-generativeai
 PyPDF2
 streamlit 
+python-magic-bin
+pptxtopdf
+docx2pdf
+docling
+matplotlib
+pytesseract
+pdf2image
+bitsandbytes
+colpali_engine==0.3.10
+google-genai
+langchain_google_genai 
+

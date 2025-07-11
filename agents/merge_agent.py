@@ -42,6 +42,17 @@ class MergeAgent(BaseAgent):
             model, processor = get_qwen_vl_model_and_processor()
             llm = pipeline("text2text-generation", model=model, tokenizer=processor.tokenizer, device_map="auto")
             self.chain = prompt | HuggingFacePipeline(pipeline=llm) | StrOutputParser()
+        
+        elif "gemini" in qa_model:
+            try:
+                from langchain_google_genai import ChatGoogleGenerativeAI
+                self.chain = prompt | ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0) | StrOutputParser()
+            except Exception as e:
+                logger.error(f"Failed to initialize Gemini model: {e}")
+                raise e
+
+        else:
+            raise ValueError(f"Unknown QA model: {qa_model}")
 
         self.memory = []
 

@@ -73,7 +73,12 @@ class MultiAgentRunner:
             qa_model (str): The underlying model the agent should use.
         """
         cls = AGENTS[agent_name]
-        agent_instance = cls(name=agent_name, qa_model=qa_model)
+        
+        if agent_name == "VerifierAgent":
+            agent_instance = cls(name=agent_name, qa_model=qa_model, threshold=self.config.get("threshold", 5))
+        else:
+            agent_instance = cls(name=agent_name, qa_model=qa_model)
+            
         self.agents[agent_name] = agent_instance
         logger.info(f"Registered agent: {agent_name} with model: {qa_model}")
 
