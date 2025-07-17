@@ -18,6 +18,7 @@ myenv/
 test/*sh 
 test/*yml 
 score_history.png
+test/LangChain_Multimodal_RAG.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
