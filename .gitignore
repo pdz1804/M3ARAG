@@ -15,10 +15,9 @@ chroma_db/*
 local/*
 local_old/*
 myenv/
-*png
 test/*sh 
 test/*yml 
-
+score_history.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
