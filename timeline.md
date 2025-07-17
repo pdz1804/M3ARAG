@@ -77,6 +77,22 @@
 
 --- 
 
+# 17/07/2025
+
+- Have done the design for this system.
+- We currently could run all the Agent with OpenAI or Gemini models. For Qwen (local), we have only test it for Text-generated only.
+- Just make a clean for the repo and fix the README
+- Ensure the `requirements.txt` is correct if run from start 
+- Mentor suggests this pipeline should be applied in some specific domain as this is currently **abstract** and when we want to apply to some problems we need to customize it. So this is just the good practice for performing all the things that we learn so far about Document Understanding + RAG + Multiagent System. 
+
+**Next things:** 
+
+- (New) Apply this pipeline and customize it to satisfy with the scope of Prof Motohashi. Also, have to show and suggest Prof about the potential of this approach when being compared with his ML approach.
+- We would **try to do the (old) things below here to finalize this repository.**
+  - Small bug not fix is that for TextRAG the chunk for PDF start the page at 1 but ImageRAG start at 0.
+  - We have not rechecked the code for using Qwen for response in place of openai and gemini. 
+  - We have only handled CSV -> TXT and not yet TXT -> PDF yet. 
+  - We could make use of docling to handle JSON, Audio (.mp3, .wav) also because they can provide us JSON & Audio -> TXT / MD. We could later transform this to PDFs.
 
 
 
