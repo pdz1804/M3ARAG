@@ -34,28 +34,45 @@ Answer:
 """
 
 IMAGE_PROMPT_TEMPLATE = """
-You are a visual assistant. Use the provided images to answer the question.
+You are a visual assistant. Use the provided images to answer the user's question in a **detailed, specific, and grounded way**.
 
-Instructions:
-- Think visually. Refer to diagrams, labels, or visual elements.
-- Focus on relevant parts only.
-- If necessary, cite where the information appears (e.g., [Figure 1], [Page 2])
-- If no helpful info is found, respond: "No answer found."
+## Instructions:
 
-Example:
+1. **Think visually and contextually.**  
+   - Carefully inspect diagrams, charts, labels, captions, symbols, and visual content.  
+   - Understand the layout, measurements, legends, axes, and key elements.
 
-Question:
-What trend does the bar chart show?
+2. **Do not provide abstract answers.**  
+   - If you reference part of the image, **describe exactly what you see**, including:
+     - Specific values, trends, or comparisons
+     - Labels, annotations, or text present in the image
+     - Visual elements like arrows, highlights, or patterns
+     - Colors, shapes, or data points if relevant
 
-Image [Figure 1] shows:
-A bar chart comparing sales from 2021 to 2023, increasing steadily each year.
+3. **Cite your visual references explicitly.**  
+   - For example: [Figure 1], [Table 2], [Image Caption on Page 3]
 
-Answer:
-The chart shows a steady increase in sales from 2021 to 2023, with the largest jump between 2022 and 2023. [Figure 1]
+4. **Be exhaustive for relevant content, but ignore unrelated parts.**
+
+5. **If no relevant visual information is found, respond:**
+   - `"No answer found."`
 
 ---
 
-Question:
+## Example:
+
+**Question:**  
+What trend does the bar chart show?
+
+**Image [Figure 1]:**  
+A bar chart with sales data from 2021 to 2023. Each bar increases in height from left to right. The 2023 bar is highlighted in red and shows the largest increase, with a label "$10M". The 2021 bar shows "$5M", and the 2022 bar shows "$7M".
+
+**Answer:**  
+The chart shows a steady increase in sales from 2021 to 2023. Sales grew from $5M in 2021 to $7M in 2022, then reached $10M in 2023, with the largest jump between 2022 and 2023. The 2023 bar is highlighted in red. [Figure 1]
+
+---
+
+**User Question:**  
 {query}
 
 Answer:
@@ -137,35 +154,58 @@ Final Combined Answer:
 """
 
 PLANNING_PROMPT_JSON = """
-You are a planning agent. Your task is to decompose a complex user query into 2-3 subtasks.
+You are a Planning Agent. Your task is to break down a complex user query into **2-3 detailed subtasks**.
 
-Instructions:
-1. Think step-by-step: What parts of the question need to be answered?
-2. Create non-overlapping subtasks that can be answered independently.
-3. Output the final result in the following JSON format:
+## Instructions:
+
+1. **Understand the question fully before splitting it**:
+   - Resolve any **pronouns or possessives** in the query (e.g., "its", "their", "they", "he", "she") to their clear referents.
+   - Identify **specific entities** mentioned in the question, such as:
+     - **Company names**
+     - **Product names**
+     - **Research paper titles**
+     - **Organizations**
+     - **Technologies**
+     - **Events or dates**
+
+2. **Create very detailed, non-overlapping subtasks**:
+   - **Do not summarize or generalize** the query.
+   - For each subtask, include **explicit references** to the specific names, topics, organizations, or items mentioned in the original question.
+   - If the user asks about comparisons, challenges, benefits, evaluations, or differences, make each aspect a **separate detailed subtask**.
+   - Ensure that each subtask is **self-contained and specific**, even if read in isolation.
+
+3. **Do not output explanations or summaries**.
+   - Only output the JSON object below.
+
+## Output Format:
+
+Return the result in **this exact JSON format**:
 
 {{
   "tasks": [
-    "Subtask 1",
-    "Subtask 2"
+    "Subtask 1 (detailed and specific, including names or entities if present)",
+    "Subtask 2 (detailed and specific, including names or entities if present)"
   ]
 }}
 
-Example:
+## Example:
 
-User Query:
-"What are the challenges and opportunities in Tesla's international expansion?"
+**User Query:**
+"What are the challenges and opportunities in Tesla's international expansion, compared to their domestic operations?"
+
+**Output:**
 
 {{
   "tasks": [
-    "What are the challenges Tesla faces when expanding internationally?",
-    "What opportunities exist for Tesla in global markets?"
+    "List and explain the specific challenges Tesla faces in its international expansion.",
+    "List and explain the specific opportunities Tesla has in international markets.",
+    "Compare Tesla's international expansion strategy with Tesla's domestic strategy in the United States, highlighting key differences."
   ]
 }}
 
 ---
 
-User Query:
+**User Query:**
 {question}
 """
 
@@ -230,58 +270,96 @@ Final Summary:
 """
 
 VERIFICATION_PROMPT = """
-You are a verifier agent. Your job is to evaluate how well the given answer addresses the user's question.
+You are a Verifier Agent. Your task is to evaluate how well the given answer addresses the user's question and propose concrete improvements if needed.
 
-You must follow the Instructions:
-1. Step-by-step, evaluate the following:
-   - Relevance: Does the answer directly respond to the question?
-   - Completeness: Does it cover all parts of the question?
-   - Correctness: Is the information accurate and based on context?
-   - Clarity: Is the answer well-written and understandable?
+## Instructions:
 
-2. Write a short paragraph justifying your score. Mention:
-   - Strengths (e.g., directness, depth, correctness)
-   - Weaknesses (e.g., vague, missing info, hallucinations)
+### 1. Evaluate the Answer Step-by-Step:
 
-3. Finally, provide a score from 1 to 10.
-   - 10: Perfect — directly answers, fully accurate and clear
-   - 7-9: Good — mostly complete and accurate with minor flaws
-   - 4-6: Weak — partial answer, some issues
-   - 1-3: Poor — irrelevant, incorrect, or vague
+Assess the answer based on the following criteria:
 
-4. If score < 7, propose 2-3 specific follow-up questions to improve the answer.
+- **Relevance**: Does the answer directly address the specific question asked?
+- **Completeness**: Does it cover **all aspects** of the question (but no more)?
+- **Correctness**: Is the information factual, accurate, and grounded in context?
+- **Clarity**: Is the answer clear, well-structured, and easy to understand?
 
-Output Format:
+### 2. Write a Short Evaluation Paragraph:
 
-Answer Evaluation:
-<your detailed justification>
+In your evaluation, mention both **strengths** and **weaknesses**:
 
-Score: <number from 1 to 10>
+- **Strengths**: For example, directness, depth of knowledge, correct facts, clarity.
+- **Weaknesses**: For example, vagueness, missing important parts, hallucination, lack of detail.
 
-Follow-Up Questions:
-- Question 1
-- Question 2
-- Question 3
+### 3. Provide a Score (1 to 10):
+
+Use the following scale:
+
+| Score | Meaning |
+|--------|----------|
+| **10** | Perfect: Fully answers the question, accurate, complete, and clear |
+| **7-9** | Good: Mostly complete and accurate with minor flaws |
+| **4-6** | Weak: Partial answer, missing key details, or some errors |
+| **1-3** | Poor: Irrelevant, incorrect, vague, or confusing |
 
 ---
 
-Question:
+### 4. Generate **2-3 Clear and Specific Follow-Up Questions** (If Score < 7):
+
+#### Important Constraints:
+
+- **Do not ask for concepts, examples, or details that are not mentioned or implied in the original user question.**  
+- **Strictly stay within the scope of the original user query.**
+- **Do not expand the task by introducing background knowledge, definitions, or historical context unless they were directly requested.**
+- **First fully understand the user query**:
+  - Resolve all pronouns and references (e.g., "its", "they", "their").
+  - Identify specific entities, topics, products, or organizations mentioned.
+- **Think about what detailed information is missing** from the answer **in relation to the user's original question only**.
+
+Each follow-up question must be:
+
+- **Specific and actionable**  
+- **Directly tied to what was missing or incomplete**  
+- **Grounded in the user's query, without adding unrelated topics**
+
+---
+
+## Output Format:
+
+Answer Evaluation:
+<Your detailed justification here>
+
+Score: <A number from 1 to 10>
+
+Follow-Up Questions:
+- Question 1 (Detailed, specific, in-scope)
+- Question 2 (Detailed, specific, in-scope)
+- Question 3 (Optional, if applicable)
+
+---
+
+## Example:
+
+### User Question:
 What is Tesla's plan for international expansion?
 
-Answer:
+### Answer:
 Tesla plans to expand into Southeast Asia, starting with a factory in Singapore in 2024. [Doc 1]
 
-Answer Evaluation:
-The answer is directly relevant to the question and mentions a concrete step Tesla is taking (opening a factory in Singapore). However, it could be more comprehensive by discussing other regions or challenges. Clarity is good, and the source is cited.
+---
 
-Score: 8
+Answer Evaluation:
+The answer is relevant and provides one specific action Tesla is taking (expanding to Singapore). However, the user asked for Tesla's **overall international expansion plan**, and this answer only mentions one country. It lacks details about plans for other regions, timelines, and overall strategy. The answer is clear but incomplete.
+
+Score: 6
 
 Follow-Up Questions:
-- Does Tesla plan to expand beyond Singapore?
-- What challenges might affect Tesla's international expansion?
-- Are there any projected timelines for other countries?
+- Besides Singapore, which other countries are included in Tesla's international expansion plan for 2024–2025?
+- What are the specific next steps in Tesla's international expansion strategy beyond building the Singapore factory?
+- Are there any announced timelines for Tesla's expansion into other parts of Southeast Asia?
 
 ---
+
+## Now evaluate the following:
 
 Question:
 {question}

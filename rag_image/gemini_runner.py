@@ -67,9 +67,21 @@ def generate_caption_with_gemini(input_data: dict) -> str:
                 logger.warning(f"Failed to process image {path}: {e}")
 
         logger.info("Sending multimodal request to Gemini...")
+        # --- old code --- 
+        # response = client.models.generate_content(
+        #     model="gemini-2.0-flash",
+        #     contents=contents
+        # )
+        
+        # --- new code ---
         response = client.models.generate_content(
             model="gemini-2.0-flash",
-            contents=contents
+            contents=contents,
+            config={
+                "max_output_tokens": 512,  # or your preferred value
+                "temperature": 0.2,        # optional: more deterministic output
+                "top_p": 0.95               # optional: controls nucleus sampling
+            }
         )
         
         # --- end new code ---

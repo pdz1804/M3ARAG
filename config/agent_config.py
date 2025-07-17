@@ -17,7 +17,7 @@ agent_config = {
     # --- new code --- 
     "max_loop": 4,
     "max_tasks": 3,
-    "threshold": 5,
+    "threshold": 6,
     # --- end new code --- 
         
 }

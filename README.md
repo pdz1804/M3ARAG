@@ -22,7 +22,7 @@ It supports local document extraction via [Docling](https://github.com/ds4sd/doc
 ```
 M3ARAG/
 ├── agents/                 # Modular agent logic.
-├── pipeline/               # Pipeline and Chat launcher interface (agent mode entrypoint)
+├── pipeline/               # Pipeline and Chat launcher interface
 ├── data/                   # Storing the downloaded files
 │   ├── store/              # Raw downloaded files (PDF, HTML, etc.)
 │   ├── merge/              # Single processing location for indexing of RAG.
@@ -141,14 +141,16 @@ GOOGLE_API_KEY=pdz-...
 If you want to run RAG-flow individually without Agents or with Agents:
 
 ```bash
+# Download data only (for local testing)
+python main.py --download
+
 # Ingest data only
 python main.py --ingest
 
-# Use ingest and chat 
-python main.py --ingest --chat
-
-# or
+# Chatting 
 python main.py --chat
+
+# Small note: we can run --download --ingest --chat at once
 
 # Run it on streamlit: by uploading docs or inputing urls
 python main.py --app
@@ -175,22 +177,34 @@ This will:
 
 ---
 
+## 🔍 Visual Overview
+
+<details>
+<summary><strong>Toggle to view Document Processing & Indexing</strong></summary>
+<img src="imgs/M3ARAG_v01_00_Process and Index.png" alt="Document Processing & Indexing" style="max-width: 100%;">
+<p><em>This diagram shows how documents are split into chunks and images, indexed via ChromaDB and stored on disk.</em></p>
+</details>
+
+<details>
+<summary><strong>Toggle to view Multi-Modal Retrieval Pipeline</strong></summary>
+<img src="imgs/M3ARAG_v01_01_Stage1_Normalize and Retrieve Contexts.png" alt="Multi-Modal Retrieval Pipeline" style="max-width: 100%;">
+<p><em>Illustration of text and image-based retrieval using sub-queries from the user question.</em></p>
+</details>
+
+<details>
+<summary><strong>Toggle to view Agent-Oriented Workflow</strong></summary>
+<img src="imgs/M3ARAG_v01_02_Stage2_Reasoning and Verifying.png" alt="Agent-Oriented Workflow" style="max-width: 100%;">
+<p><em>Overview of how multiple specialized agents interact to process, merge, verify, and answer complex queries.</em></p>
+</details>
+
+---
+
 ## 📥 Input Types Supported
 
 - ✅ PDF documents (`.pdf`)
 - ✅ HTML, MD, PPTX, CSV, DOCX, TXT (converted to PDF)
 - ✅ Extracted images (captioning + indexing coming soon)
 - 🧪 Support for `audio`, `.json`, `.xml` being tested for later release
-
----
-
-## 🛠 Tools & Libraries
-
-- 🧱 [LangChain](https://www.langchain.com/)
-- 📚 [SentenceTransformers](https://www.sbert.net/)
-- 📦 [ChromaDB](https://www.trychroma.com/)
-- 🔍 [Docling](https://github.com/ds4sd/docling)
-- 🤖 OpenAI GPT (GPT-4o-mini used for generation), Gemini, Qwen is supported
 
 ---
 

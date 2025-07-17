@@ -26,4 +26,5 @@ bitsandbytes
 colpali_engine==0.3.10
 google-genai
 langchain_google_genai 
-
+# langchain-milvus 
+# pymilvus
