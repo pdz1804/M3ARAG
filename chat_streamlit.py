@@ -1,15 +1,217 @@
 """
-chat_streamlit.py
+M3ARAG Streamlit Web Interface: Interactive Multi-Modal Document Analysis Platform
 
-This script defines the Streamlit frontend interface for the M3ARAG (Multimodal Multi-Agent RAG) system.
-It allows users to upload documents or input URLs, processes the data through a multimodal RAG pipeline,
-and enables interactive Q&A over the ingested content using multiple agents.
+This module implements a sophisticated web-based interface for the M3ARAG system,
+providing users with an intuitive platform for document upload, processing, and
+interactive question-answering through a modern, responsive web application.
 
-Main Features:
-- Document upload and URL-based input
-- Normalization, extraction, and ingestion pipeline
-- Agent-based RAG querying with chat history
-- Logging and traceability of document processing
+Application Overview:
+    The Streamlit interface serves as the primary user-facing component of the
+    M3ARAG system, offering a complete document understanding workflow from
+    initial upload through interactive analysis and querying.
+
+    Key Features:
+    - **Drag-and-Drop Document Upload**: Intuitive file upload with multi-format support
+    - **URL-Based Content Ingestion**: Direct processing of web-based documents
+    - **Real-Time Processing Visualization**: Live progress tracking and status updates
+    - **Interactive Chat Interface**: Conversational document querying with history
+    - **Session State Management**: Persistent user sessions with conversation memory
+    - **Error Handling and Recovery**: Graceful error handling with user feedback
+
+User Interface Architecture:
+    The application follows a progressive workflow design that guides users
+    through the document processing and analysis pipeline:
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │                    Document Input Stage                         │
+    │                                                                 │
+    │  ┌─────────────────┐        ┌─────────────────────────────────┐ │
+    │  │  File Upload    │   OR   │       URL Input                 │ │
+    │  │  Component      │        │       Component                 │ │
+    │  └─────────────────┘        └─────────────────────────────────┘ │
+    └─────────────────────┬───────────────────────────────────────────┘
+                          │
+    ┌─────────────────────▼───────────────────────────────────────────┐
+    │                Processing Stage                                 │
+    │                                                                 │
+    │  • Document Validation and Format Detection                     │
+    │  • Content Extraction and Normalization                        │
+    │  • Multi-Modal Index Building (Text + Visual)                  │
+    │  • Progress Visualization and Status Updates                    │
+    └─────────────────────┬───────────────────────────────────────────┘
+                          │
+    ┌─────────────────────▼───────────────────────────────────────────┐
+    │                Interactive Chat Stage                           │
+    │                                                                 │
+    │  • Multi-Agent Query Processing                                 │
+    │  • Real-Time Response Generation                                │
+    │  • Conversation History Management                              │
+    │  • Source Attribution and Citation Display                     │
+    └─────────────────────────────────────────────────────────────────┘
+
+Core Components and Features:
+
+**Document Input Management**:
+    The interface provides flexible document input mechanisms:
+    
+    **File Upload Component**:
+    - Multi-format support: PDF, DOCX, PPTX, HTML, CSV, MD
+    - Drag-and-drop functionality for intuitive user experience
+    - Multiple file selection and batch processing
+    - File validation with format verification
+    - Progress indication during upload
+    
+    **URL Input Component**:
+    - Direct URL processing for web-based documents
+    - Comma and newline separated URL input
+    - URL validation and accessibility checking
+    - Dynamic content fetching with error handling
+    - Support for various web content types
+
+**Processing Pipeline Integration**:
+    The interface seamlessly integrates with the M3ARAG processing pipeline:
+    
+    - **Document Processor Integration**: Automatic format detection and processing
+    - **Content Extraction**: Docling-powered robust content extraction
+    - **Index Building**: Real-time multi-modal index construction
+    - **Progress Tracking**: Live updates on processing status and completion
+    - **Error Recovery**: Graceful handling of processing failures
+
+**Interactive Chat System**:
+    Advanced conversational interface for document querying:
+    
+    **Chat Interface Features**:
+    - Real-time message processing and response generation
+    - Conversation history with persistent session storage
+    - Message threading and context preservation
+    - Typing indicators and response streaming
+    - Rich text formatting for enhanced readability
+    
+    **Multi-Agent Integration**:
+    - Seamless integration with the six-agent system
+    - Real-time agent coordination and response synthesis
+    - Quality-driven iterative improvement display
+    - Source attribution and citation linking
+    - Performance metrics and response quality indicators
+
+**Session State Management**:
+    Comprehensive session management for user experience continuity:
+    
+    - **Persistent Sessions**: User sessions maintained across browser refreshes
+    - **Conversation Memory**: Complete chat history preservation
+    - **Processing State**: Document processing status and results caching
+    - **User Preferences**: Customizable interface settings and preferences
+    - **Error State Recovery**: Graceful recovery from session interruptions
+
+**User Experience Enhancements**:
+    
+    **Visual Feedback Systems**:
+    - Loading spinners and progress bars for processing stages
+    - Success and error notifications with detailed messages
+    - Interactive status updates during long-running operations
+    - Visual confirmation of completed processing steps
+    
+    **Responsive Design**:
+    - Mobile-friendly interface with adaptive layouts
+    - Optimized for various screen sizes and devices
+    - Touch-friendly controls for mobile interaction
+    - Consistent design language across all components
+
+**Error Handling and User Guidance**:
+    
+    **Comprehensive Error Management**:
+    - User-friendly error messages with actionable guidance
+    - Detailed error logging for debugging and support
+    - Graceful degradation for partial system failures
+    - Recovery suggestions and alternative processing options
+    
+    **User Guidance Systems**:
+    - Contextual help and tooltips throughout the interface
+    - Step-by-step processing guidance
+    - Best practices recommendations for document preparation
+    - FAQ integration and troubleshooting guides
+
+**Performance Optimizations**:
+    
+    **Efficient Resource Management**:
+    - Lazy loading of interface components
+    - Optimized file upload with chunked transfer
+    - Caching of processed results for improved response times
+    - Memory-efficient handling of large documents
+    
+    **Asynchronous Processing**:
+    - Non-blocking document processing operations
+    - Background index building with progress updates
+    - Concurrent handling of multiple user sessions
+    - Responsive interface during intensive operations
+
+**Security and Privacy Features**:
+    
+    **Data Protection**:
+    - Secure file upload with validation and sanitization
+    - Temporary file cleanup after processing
+    - Session-based data isolation between users
+    - Configurable data retention policies
+    
+    **Access Control**:
+    - Session-based access management
+    - Input validation and sanitization
+    - Rate limiting for API protection
+    - Secure handling of sensitive documents
+
+Technical Implementation Details:
+
+**Streamlit Integration**:
+    - Modern Streamlit framework for rapid development
+    - Component-based architecture for maintainability
+    - State management using Streamlit session state
+    - Custom CSS styling for enhanced visual appeal
+
+**Backend Integration**:
+    - Seamless integration with M3APipeline system
+    - Real-time communication with document processor
+    - Direct access to multi-agent coordination system
+    - Efficient data transfer between frontend and backend
+
+**File Management**:
+    - Organized directory structure for uploaded files
+    - Automatic cleanup of temporary processing files
+    - Persistent storage for processed documents
+    - Efficient file serving for large document collections
+
+Usage Examples:
+    ```python
+    # Run the Streamlit application
+    streamlit run chat_streamlit.py
+    
+    # Application automatically handles:
+    # 1. Document upload or URL input
+    # 2. Processing pipeline execution
+    # 3. Index building and validation
+    # 4. Interactive chat activation
+    ```
+
+**Deployment Considerations**:
+    - **Local Deployment**: Single-user desktop application mode
+    - **Server Deployment**: Multi-user web application hosting
+    - **Cloud Integration**: Scalable cloud deployment options
+    - **Container Support**: Docker containerization for easy deployment
+
+**Monitoring and Analytics**:
+    - User interaction tracking for UX optimization
+    - Processing performance metrics collection
+    - Error rate monitoring and alerting
+    - Usage pattern analysis for system improvements
+
+Dependencies:
+    - **Core**: streamlit, pathlib, json, logging
+    - **Backend**: M3APipeline, DocumentProcessor, agent system
+    - **Configuration**: agent_config, rag_config
+    - **Utilities**: typing annotations, error handling
+
+Author: PDZ (Nguyen Quang Phu), Bang (Tieu Tri Bang)
+Version: 2.0 (Advanced Web Interface)
+License: MIT License
 """
 import logging
 

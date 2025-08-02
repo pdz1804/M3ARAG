@@ -1,27 +1,59 @@
 """
-main.py - Entry point for AgenticRAG Pipeline
+M3ARAG Main Entry Point - Multi-Modal Multi-Agent RAG System
 
-This script serves as the main execution pipeline for the AgenticRAG system,
-handling document ingestion, extraction, normalization, PDF merging, indexing, 
-and RAG-based chat interaction using LangChain agents.
+This module serves as the primary execution pipeline for the M3ARAG system,
+orchestrating document processing, multi-modal indexing, and agent-based 
+question answering through a sophisticated RAG architecture.
 
-Features:
-- Accepts both URLs and local file paths (PDF, DOCX, PPTX, HTML, CSV, MD).
-- Uses Docling to extract structured content from documents.
-- Normalizes all inputs to PDF format for unified downstream processing.
-- Creates mappings for traceability between input and processed outputs.
-- Merges PDFs into a single directory for indexing and retrieval.
-- Supports ingestion-only mode or full interactive chat using agents.
+System Overview:
+    M3ARAG combines document understanding, multi-modal retrieval, and 
+    specialized AI agents to provide comprehensive answers from complex 
+    document collections including PDFs, Office documents, and web content.
 
-Usage:
-    python main.py --ingest      # Only ingest and index the documents
-    python main.py --chat        # Ingest, index, and enter chat mode
+Key Features:
+    - Multi-format document processing (PDF, DOCX, PPTX, HTML, CSV, MD)
+    - URL and local file path support with automatic content fetching
+    - Docling-powered robust document extraction and normalization
+    - Dual-mode indexing: textual chunks and visual page embeddings
+    - Multi-agent reasoning system with iterative quality improvement
+    - Comprehensive logging and error handling with full traceability
+    - Multiple execution modes for different use cases
 
-Environment Variables:
-    - Requires OPENAI_API_KEY in .env file
+Architecture Components:
+    1. Document Processor: Handles multi-format ingestion and normalization
+    2. RAG System: Coordinates text and visual retrieval pipelines
+    3. Multi-Agent System: Orchestrates specialized reasoning agents
+    4. Pipeline Manager: Coordinates end-to-end workflow execution
 
-Logs:
-    Logs are written to `agenticrag.log` and stdout each run, starting fresh.
+Execution Modes:
+    --download    : Download and process documents only
+    --ingest      : Build search indices from processed documents
+    --chat        : Enable interactive question-answering mode
+    --app         : Launch Streamlit web interface
+    Combined      : Use multiple flags for complete pipeline
+
+Environment Requirements:
+    - OPENAI_API_KEY: Required for OpenAI GPT-4o integration
+    - GOOGLE_API_KEY: Optional for Gemini model integration
+    - Poppler: System dependency for PDF processing
+
+File Organization:
+    data/store/     : Original downloaded files with metadata
+    data/extract/   : Processed content (PDFs, images, markdown)
+    data/merge/     : Unified PDF collection for indexing
+    agenticrag.log  : Comprehensive execution logs with timestamps
+
+Usage Examples:
+    python main.py --download --ingest --chat  # Complete pipeline
+    python main.py --app                       # Web interface only
+    python main.py --ingest                    # Index existing documents
+    python main.py --chat                      # Chat with indexed documents
+
+Error Handling:
+    - Comprehensive logging to file and console
+    - Graceful degradation for missing dependencies
+    - Resource cleanup and memory management
+    - Detailed error reporting with context
 """
 import logging
 import sys

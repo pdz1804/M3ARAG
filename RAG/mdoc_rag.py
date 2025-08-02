@@ -1,16 +1,179 @@
 """
-mdoc_rag.py
+MDocRAG: Advanced Multi-Modal Document Retrieval-Augmented Generation System
 
-Multimodal Document Retrieval-Augmented Generation (MDocRAG) pipeline.
+This module implements the MDocRAG class, which serves as the central coordinator
+for a sophisticated multi-modal retrieval-augmented generation pipeline that
+combines textual and visual understanding for comprehensive document analysis.
 
-This module coordinates the ingestion and querying of both textual and visual content
-from PDFs, leveraging two pipelines:
-- TextRAGPipeline: extracts and indexes text chunks from PDFs.
-- VisualRAGPipeline: converts PDF pages into images and indexes visual embeddings.
+System Architecture Overview:
+    MDocRAG orchestrates two complementary retrieval pipelines to provide
+    comprehensive document understanding through dual-modality processing:
 
-At runtime, both indexes are queried to return top-K relevant text chunks and images.
+    ┌─────────────────────────────────────────────────────────────────┐
+    │                    MDocRAG Coordinator                          │
+    ├─────────────────────┬───────────────────────────────────────────┤
+    │   Text Pipeline     │            Visual Pipeline                │
+    │                     │                                           │
+    │ ┌─────────────────┐ │ ┌─────────────────────────────────────────┤
+    │ │ • PDF Text      │ │ │ • PDF → Page Images                     │
+    │ │   Extraction    │ │ │ • Visual Embedding (ColPali/ColQwen)   │
+    │ │ • Semantic      │ │ │ • Page-Level Indexing                  │
+    │ │   Chunking      │ │ │ • Visual Similarity Search             │
+    │ │ • Embedding     │ │ │ • Context-Aware Retrieval              │
+    │ │   (SentenceT.)  │ │ │                                         │
+    │ │ • ChromaDB      │ │ │                                         │
+    │ │   Indexing      │ │ │                                         │
+    │ └─────────────────┘ │ └─────────────────────────────────────────┤
+    └─────────────────────┴───────────────────────────────────────────┘
+                                        │
+                          ┌─────────────▼─────────────┐
+                          │    Multi-Modal Query      │
+                          │      Processing           │
+                          │                           │
+                          │ • Parallel Retrieval      │
+                          │ • Result Ranking          │
+                          │ • Context Integration     │
+                          │ • Response Synthesis      │
+                          └───────────────────────────┘
 
-Author: PDZ, Bang
+Core Responsibilities:
+    1. **Document Ingestion**: Comprehensive multi-format document processing
+    2. **Dual-Pipeline Indexing**: Synchronized text and visual index creation
+    3. **Multi-Modal Retrieval**: Parallel text and visual content retrieval
+    4. **Result Integration**: Intelligent merging of textual and visual results
+    5. **Index Management**: Persistent storage and efficient index operations
+
+Text Processing Pipeline (TextRAGPipeline):
+    The text pipeline handles textual content extraction and indexing:
+    
+    **Document Processing**:
+    - Multi-format text extraction using Docling library
+    - Intelligent text cleaning and preprocessing
+    - Document structure preservation and metadata extraction
+    
+    **Semantic Chunking**:
+    - Context-aware text segmentation with configurable parameters
+    - Overlap management for semantic continuity
+    - Document structure preservation with hierarchical chunking
+    
+    **Embedding Generation**:
+    - High-quality sentence embeddings using state-of-the-art models
+    - Support for multiple embedding models (MiniLM, MPNet, BGE)
+    - Batch processing for efficient large document handling
+    
+    **Vector Storage**:
+    - ChromaDB integration for scalable similarity search
+    - Persistent storage with incremental index updates
+    - Efficient retrieval with configurable similarity thresholds
+
+Visual Processing Pipeline (VisualRAGPipeline):
+    The visual pipeline processes document images for visual understanding:
+    
+    **Image Generation**:
+    - High-quality PDF page rendering with configurable resolution
+    - Multi-page processing with parallel image generation
+    - Format optimization for downstream processing
+    
+    **Visual Embedding**:
+    - Advanced visual embeddings using ColPali or ColQwen models
+    - Late-interaction mechanisms for fine-grained visual understanding
+    - GPU-optimized processing with memory management
+    
+    **Visual Indexing**:
+    - Efficient visual similarity search capabilities
+    - Page-level indexing with document structure preservation
+    - Persistent storage with optimized retrieval mechanisms
+
+Multi-Modal Query Processing:
+    The system provides sophisticated query processing capabilities:
+    
+    **Parallel Retrieval**:
+    - Simultaneous text and visual content retrieval
+    - Independent ranking and scoring mechanisms
+    - Configurable retrieval parameters per modality
+    
+    **Result Integration**:
+    - Intelligent merging of text and visual results
+    - Context-aware ranking and relevance scoring
+    - Duplicate detection and result deduplication
+    
+    **Context Assembly**:
+    - Comprehensive context preparation for agent processing
+    - Source attribution and metadata preservation
+    - Quality assurance and completeness verification
+
+Advanced Features:
+    - **Incremental Indexing**: Efficient updates for new documents
+    - **Index Persistence**: Reliable storage and recovery mechanisms
+    - **Memory Optimization**: Efficient resource utilization
+    - **Concurrent Processing**: Parallel operations for improved performance
+    - **Error Recovery**: Robust error handling and graceful degradation
+
+Configuration Management:
+    The system supports comprehensive configuration for optimal performance:
+    
+    ```python
+    config = {
+        "data_dir": "data/merge/",              # Document directory
+        "vision_retriever": "colpali",          # Visual model selection
+        "text_retriever": "minilm",             # Text embedding model
+        "top_k": 3,                             # Results per query
+        "chunk_size": 3000,                     # Text chunk size
+        "chunk_overlap": 300,                   # Chunk overlap
+        "force_reindex": False                  # Force index rebuild
+    }
+    ```
+
+Performance Optimizations:
+    - **Lazy Loading**: Resources loaded on demand for memory efficiency
+    - **Batch Processing**: Optimized bulk operations for large documents
+    - **Caching**: Intelligent caching of frequently accessed data
+    - **Memory Management**: Automatic cleanup and resource optimization
+    - **GPU Acceleration**: Hardware acceleration where available
+
+Usage Examples:
+    ```python
+    # Initialize MDocRAG system
+    config = {
+        "data_dir": "data/pdf/",
+        "vision_retriever": "colpali",
+        "text_retriever": "minilm", 
+        "top_k": 5
+    }
+    rag = MDocRAG(config)
+    
+    # Build indices from documents
+    rag.ingest(pdf_dir="data/pdf/", index_dir="data/index/")
+    
+    # Query the system
+    results = rag.retrieve_results("What are the key findings?")
+    text_results = results["text_results"]
+    visual_results = results["visual_results"]
+    ```
+
+Integration Points:
+    - **Agent System**: Provides contexts for multi-agent processing
+    - **Pipeline Integration**: Seamless integration with M3APipeline
+    - **External APIs**: Support for various embedding and vision APIs
+    - **Storage Systems**: Flexible storage backend support
+
+Quality Assurance:
+    - **Comprehensive Logging**: Detailed operation logging for monitoring
+    - **Error Handling**: Robust error recovery and reporting
+    - **Validation**: Input and output validation for reliability
+    - **Testing**: Extensive testing coverage for stability
+    - **Monitoring**: Performance monitoring and optimization
+
+Dependencies:
+    - **Core**: langchain, chromadb, sentence-transformers
+    - **Visual**: colpali-engine, pdf2image, pillow
+    - **Text**: docling, pypdf, transformers
+    - **Storage**: sqlite3, pickle, json
+    - **Utilities**: logging, pathlib, typing
+
+Author: PDZ (Nguyen Quang Phu), Bang (Tieu Tri Bang)
+Version: 2.0 (Advanced Multi-Modal Architecture)
+License: MIT License
 """
 # mdoc_rag.py
 # At the very top of mdoc_rag.py, BEFORE ANY OTHER IMPORTS

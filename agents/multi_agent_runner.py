@@ -1,28 +1,140 @@
 """
-agents/multi_agent_runner.py
+Multi-Agent Runner: Advanced Agent Coordination and Execution Engine
 
-This module defines the `MultiAgentRunner` class, which coordinates the execution of
-multiple specialized agents in a loop to perform multimodal retrieval-augmented generation (RAG)
-with iterative refinement based on feedback from a VerifierAgent.
+This module implements the sophisticated MultiAgentRunner class that orchestrates
+multiple specialized AI agents in an iterative refinement workflow for complex
+multi-modal question answering with quality-driven improvement loops.
 
-Responsibilities:
-- Registers and manages multiple agents (TextAgent, ImageAgent, GeneralizeAgent, PlanningAgent, MergeAgent, VerifierAgent).
-- Executes a Planning → Sub-Agent → Merge → Verify loop with score tracking.
-- Performs multimodal context retrieval for each sub-query.
-- Tracks merged answers across iterations for memory-aware cumulative merging.
+System Architecture:
+    The MultiAgentRunner implements a feedback-driven architecture where agents
+    collaborate in structured phases with memory persistence and quality assessment:
 
-Key Features:
-- Agents dynamically registered from the AGENTS registry.
-- Uses VerifierAgent feedback to decide if further iterations are needed.
-- Reuses previous merged context in subsequent loops for richer generation.
-- Plots score history across iterations for inspection.
+    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+    │  Planning   │───▶│  Retrieval  │───▶│ Generation  │
+    │   Phase     │    │   Phase     │    │   Phase     │
+    └─────────────┘    └─────────────┘    └─────────────┘
+                                                   │
+    ┌─────────────┐    ┌─────────────┐    ┌───────▼─────┐
+    │ Verification│◀───│   Merge     │◀───│ Synthesis   │
+    │   Phase     │    │   Phase     │    │   Phase     │
+    └─────────────┘    └─────────────┘    └─────────────┘
 
-Typical Usage:
+Execution Workflow:
+    The system follows a sophisticated iterative workflow designed for quality
+    maximization through continuous refinement:
+
+    1. **Planning Phase**: Query decomposition and task generation
+       - Complex query analysis and entity resolution
+       - Sub-question generation with context preservation
+       - Task prioritization and scope determination
+
+    2. **Retrieval Phase**: Multi-modal context gathering
+       - Parallel text and visual content retrieval
+       - Context relevance scoring and ranking
+       - Memory integration from previous iterations
+
+    3. **Generation Phase**: Specialized agent processing
+       - TextAgent: Processes textual contexts with LLM reasoning
+       - ImageAgent: Analyzes visual content with vision-language models
+       - Parallel processing with error handling and recovery
+
+    4. **Synthesis Phase**: Multi-modal response integration
+       - GeneralizeAgent combines text and visual insights
+       - Conflict resolution and information deduplication
+       - Source attribution and citation management
+
+    5. **Merge Phase**: Response consolidation
+       - Memory-aware merging of current and historical contexts
+       - Natural language flow optimization
+       - Coherence and completeness verification
+
+    6. **Verification Phase**: Quality assessment and decision
+       - Multi-criteria evaluation (relevance, completeness, correctness, clarity)
+       - Numerical scoring (1-10 scale) with detailed feedback
+       - Follow-up question generation for improvement
+       - Iteration decision based on configurable thresholds
+
+Core Responsibilities:
+    - Agent lifecycle management and coordination
+    - Memory persistence across iterations for context continuity
+    - Quality-driven iterative improvement with configurable thresholds
+    - Performance monitoring and score visualization
+    - Error handling and graceful degradation
+    - Resource optimization and memory management
+
+Agent Registry Integration:
+    The system dynamically loads agents from a centralized registry,
+    enabling flexible configuration and easy extensibility:
+    
+    - Dynamic agent instantiation with model selection
+    - Configurable agent parameters and behaviors
+    - Runtime agent registration and deregistration
+    - Model-specific optimization and error handling
+
+Memory Management:
+    Advanced memory system enables context-aware processing:
+    
+    - **Shared Memory**: Cross-agent communication and state sharing
+    - **Memory Log**: Historical context preservation across iterations
+    - **Sub-Answer Tracking**: Comprehensive answer evolution tracking
+    - **Query Mapping**: Subquery-to-answer relationship maintenance
+
+Quality Assurance Features:
+    - **Iterative Refinement**: Continuous quality improvement through feedback
+    - **Score Tracking**: Performance monitoring across iterations
+    - **Threshold Management**: Configurable quality gates
+    - **Progress Visualization**: Graphical score progression analysis
+    - **Convergence Detection**: Automatic stopping criteria
+
+Performance Optimizations:
+    - **Parallel Processing**: Concurrent agent execution where possible
+    - **Memory Efficiency**: Optimized data structures and cleanup
+    - **Caching**: Intelligent caching of intermediate results
+    - **Resource Management**: GPU memory optimization and cleanup
+    - **Batch Operations**: Efficient processing of multiple queries
+
+Configuration Parameters:
+    - **max_loop**: Maximum iteration limit for quality improvement
+    - **max_tasks**: Maximum sub-questions per iteration
+    - **threshold**: Quality score threshold for completion (1-10 scale)
+    - **agent_models**: Model selection per agent type
+    - **memory_settings**: Memory management configuration
+
+Error Handling and Recovery:
+    - **Graceful Degradation**: System continues with reduced functionality
+    - **Error Isolation**: Agent failures don't crash entire pipeline
+    - **Retry Logic**: Automatic retry with exponential backoff
+    - **Fallback Models**: Alternative model selection on failure
+    - **Comprehensive Logging**: Detailed error reporting and context
+
+Usage Examples:
+    ```python
+    # Basic initialization
     runner = MultiAgentRunner(rag_system, agent_config)
-    runner.register_agent("TextAgent", qa_model="qwen")
+    
+    # Agent registration with model selection
+    runner.register_agent("TextAgent", qa_model="openai")
     runner.register_agent("ImageAgent", qa_model="gemini")
-    ...
-    answer = runner.run("What are the strengths of Company X?")
+    runner.register_agent("GeneralizeAgent", qa_model="openai")
+    runner.register_agent("PlanningAgent", qa_model="openai")
+    runner.register_agent("MergeAgent", qa_model="openai")
+    runner.register_agent("VerifierAgent", qa_model="openai")
+    
+    # Process complex query with iterative improvement
+    final_answer = runner.run("What are the key challenges and opportunities 
+                              in AI adoption for healthcare organizations?")
+    ```
+
+Technical Implementation:
+    - **Thread Safety**: Safe concurrent access to shared resources
+    - **Memory Mapping**: Efficient large data structure handling
+    - **Vectorization**: Optimized numerical operations
+    - **Profiling**: Built-in performance monitoring and analysis
+    - **Extensibility**: Plugin architecture for custom agents
+
+Author: PDZ (Nguyen Quang Phu), Bang (Tieu Tri Bang)
+Version: 2.0 (Advanced Multi-Agent Architecture)
+Dependencies: langchain, transformers, torch, matplotlib, chromadb
 """
 import logging
 

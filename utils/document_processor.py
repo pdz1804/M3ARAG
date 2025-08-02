@@ -1,16 +1,216 @@
 """
-utils/document_processor.py
+DocumentProcessor: Universal Multi-Format Document Processing and Normalization Engine
 
-This module defines the DocumentProcessor class and utility functions used in the AgenticRAG pipeline
-to download, extract, normalize, and convert various input document formats (e.g., PDF, DOCX, HTML, CSV, PPTX)
-into unified PDF files and structured outputs (images, tables, markdown). It supports both local files and URLs.
+This module implements a sophisticated document processing system that handles
+comprehensive ingestion, extraction, and normalization of diverse document
+formats for the M3ARAG multi-modal retrieval system.
 
-Main Components:
-- DocumentProcessor: Handles downloading, format detection, content extraction using Docling, rendering HTML to PDF, etc.
-- process_documents: Wrapper to invoke processing on a list of items.
-- copy_pdfs_to_merge_dir: Collects all normalized PDFs into a common merge directory for indexing and retrieval.
+Supported Document Formats:
+    **Input Formats**:
+    - PDF documents (.pdf) - Native support with advanced extraction
+    - Microsoft Word (.docx, .doc) - Full content and formatting preservation
+    - PowerPoint (.pptx, .ppt) - Slide content and embedded media extraction
+    - HTML files (.html) - Web content with layout preservation
+    - Markdown files (.md) - Structured text with formatting
+    - CSV files (.csv) - Tabular data with intelligent formatting
+    - Plain text (.txt) - Direct text processing
+    - Images (PNG, JPEG) - Visual content extraction
+    - Web URLs - Dynamic content fetching and processing
 
-Dependencies: Docling, Playwright, pdfkit, docx2pdf, pptxtopdf, pandas, requests, python-magic
+    **Output Formats**:
+    - Normalized PDFs for unified downstream processing
+    - Extracted images with quality filtering and optimization
+    - Structured markdown with hierarchy preservation
+    - Tabular data in standardized formats
+    - Comprehensive metadata and mapping files
+
+System Architecture:
+    The DocumentProcessor implements a multi-stage processing pipeline
+    designed for robustness, efficiency, and comprehensive content extraction:
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │                  Document Input Layer                           │
+    │  URLs • Local Files • Multiple Formats • Batch Processing      │
+    └─────────────────────┬───────────────────────────────────────────┘
+                          │
+    ┌─────────────────────▼───────────────────────────────────────────┐
+    │              Format Detection & Validation                      │
+    │     Magic Numbers • MIME Types • Extension Analysis             │
+    └─────────────────────┬───────────────────────────────────────────┘
+                          │
+    ┌─────────────────────▼───────────────────────────────────────────┐
+    │                Content Extraction                               │
+    │  Docling • Office Converters • HTML Rendering • Text Processing│
+    └─────────────────────┬───────────────────────────────────────────┘
+                          │
+    ┌─────────────────────▼───────────────────────────────────────────┐
+    │              Normalization & Optimization                       │
+    │      PDF Conversion • Image Filtering • Quality Assurance      │
+    └─────────────────────┬───────────────────────────────────────────┘
+                          │
+    ┌─────────────────────▼───────────────────────────────────────────┐
+    │                Storage & Organization                           │
+    │    Structured Directories • Metadata • Traceability Maps       │
+    └─────────────────────────────────────────────────────────────────┘
+
+Core Processing Capabilities:
+
+**Advanced Content Extraction**:
+    The system leverages industry-leading tools for robust content extraction:
+    
+    - **Docling Integration**: State-of-the-art document understanding
+      • Multi-format parsing with layout preservation
+      • Advanced table and image extraction
+      • Hierarchical structure recognition
+      • Metadata preservation and enhancement
+    
+    - **Office Document Processing**: Native Microsoft Office support
+      • Word document conversion with formatting preservation
+      • PowerPoint slide extraction with embedded media
+      • Excel spreadsheet processing with data validation
+    
+    - **Web Content Processing**: Dynamic web content handling
+      • Playwright-powered browser automation
+      • JavaScript-rendered content extraction
+      • CSS styling preservation for layout understanding
+      • Responsive design handling for mobile content
+
+**Intelligent Format Detection**:
+    - **Magic Number Analysis**: Binary signature-based format identification
+    - **MIME Type Recognition**: Content-Type header analysis for web content
+    - **Extension Validation**: File extension verification and correction
+    - **Content Inspection**: Deep content analysis for format confirmation
+    - **Error Recovery**: Robust handling of corrupted or misidentified files
+
+**Quality-Aware Processing**:
+    The system implements comprehensive quality controls:
+    
+    - **Image Quality Assessment**: Automatic filtering of low-quality images
+      • Minimum dimension requirements (300x300 pixels)
+      • Area-based filtering (90,000+ pixel minimum)
+      • Format optimization and standardization
+    
+    - **Text Quality Validation**: Content integrity verification
+      • Character encoding detection and correction
+      • Language identification and processing
+      • Structure validation and repair
+    
+    - **Document Structure Analysis**: Layout understanding and preservation
+      • Heading hierarchy detection and preservation
+      • Table structure recognition and extraction
+      • List and enumeration handling
+
+**Robust Error Handling and Recovery**:
+    - **Multi-Stage Fallbacks**: Alternative processing methods for failures
+    - **Partial Success Handling**: Extract available content from partial failures
+    - **Resource Cleanup**: Automatic temporary file and memory management
+    - **Detailed Error Reporting**: Comprehensive error logging with context
+    - **Retry Mechanisms**: Intelligent retry logic with exponential backoff
+
+Directory Structure and Organization:
+    ```
+    data/
+    ├── store/              # Original downloaded files
+    │   ├── <hash>.<ext>   # Files stored with content hash naming
+    │   └── metadata.json  # Download metadata and source information
+    ├── extract/            # Processed and extracted content
+    │   ├── pdf/           # Normalized PDF files
+    │   ├── imgs/          # Extracted images with quality filtering
+    │   ├── markdown/      # Structured text content
+    │   └── tables/        # Extracted tabular data
+    ├── merge/             # Final unified collection for indexing
+    └── mappings/          # Traceability and relationship mappings
+        ├── input_to_output_mapping.json
+        └── input_to_normalized_mapping.json
+    ```
+
+Advanced Features:
+
+**Incremental Processing**:
+    - **Duplicate Detection**: Content-based deduplication using hashing
+    - **Update Detection**: Modified file identification and reprocessing
+    - **Selective Processing**: Process only new or changed content
+    - **Dependency Tracking**: Maintain relationships between source and output files
+
+**Parallel Processing**:
+    - **Concurrent Downloads**: Parallel fetching of multiple URLs
+    - **Batch Operations**: Efficient processing of document collections
+    - **Resource Management**: Optimal utilization of system resources
+    - **Progress Tracking**: Real-time processing status and estimates
+
+**Memory Optimization**:
+    - **Streaming Processing**: Large file handling without full memory loading
+    - **Garbage Collection**: Proactive memory cleanup during processing
+    - **Resource Pooling**: Efficient reuse of processing resources
+    - **Memory Monitoring**: Real-time memory usage tracking and optimization
+
+URL Processing Capabilities:
+    - **Content Type Detection**: Automatic format identification from headers
+    - **JavaScript Rendering**: Dynamic content processing with Playwright
+    - **Authentication Handling**: Support for authenticated content access
+    - **Rate Limiting**: Respectful crawling with configurable delays
+    - **Error Recovery**: Robust handling of network issues and timeouts
+
+Configuration and Customization:
+    ```python
+    processor = DocumentProcessor(
+        store_dir="data/store",           # Original file storage
+        extract_dir="data/extract"        # Processed content output
+    )
+    
+    # Quality thresholds
+    processor.MIN_IMAGE_WIDTH = 300       # Minimum image width
+    processor.MIN_IMAGE_HEIGHT = 300      # Minimum image height  
+    processor.MIN_IMAGE_AREA = 90000      # Minimum image area
+    ```
+
+Integration Points:
+    - **M3ARAG Pipeline**: Seamless integration with the main RAG system
+    - **Agent System**: Provides processed content for agent analysis
+    - **Storage Systems**: Flexible backend storage support
+    - **Monitoring Systems**: Comprehensive logging and metrics integration
+
+Performance Characteristics:
+    - **Throughput**: Optimized for high-volume document processing
+    - **Latency**: Minimal processing delays with efficient algorithms
+    - **Scalability**: Horizontal scaling support for large deployments
+    - **Reliability**: Robust error handling and recovery mechanisms
+    - **Resource Efficiency**: Optimal memory and CPU utilization
+
+Usage Examples:
+    ```python
+    # Initialize processor
+    processor = DocumentProcessor()
+    
+    # Process mixed input types
+    inputs = [
+        "https://arxiv.org/pdf/1706.03762.pdf",
+        "local/document.docx", 
+        "local/presentation.pptx",
+        "https://example.com/page.html"
+    ]
+    
+    # Process all inputs
+    downloaded_map, normalized_map = processor.process_all(inputs)
+    
+    # Copy results to merge directory
+    copy_pdfs_to_merge_dir(
+        [Path("data/extract/pdf"), Path("data/store")], 
+        Path("data/merge")
+    )
+    ```
+
+Dependencies:
+    - **Core**: pathlib, shutil, json, hashlib, logging
+    - **Document Processing**: docling, pypdf, python-magic
+    - **Office Documents**: docx2pdf, pptxtopdf
+    - **Web Processing**: playwright, requests, pdfkit
+    - **Data Processing**: pandas, markdown
+    - **Utilities**: urllib, time, re
+
+Author: PDZ (Nguyen Quang Phu), Bang (Tieu Tri Bang)
+Version: 2.0 (Advanced Multi-Format Processing)
+License: MIT License
 """
 import re
 import time

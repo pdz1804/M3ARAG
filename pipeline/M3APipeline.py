@@ -1,29 +1,119 @@
 """
-pipeline/M3APipeline.py
+M3APipeline: Multi-Modal Multi-Agent RAG Pipeline Orchestrator
 
-This module defines the M3APipeline class, which orchestrates an end-to-end
-multimodal retrieval-augmented generation (RAG) pipeline for understanding documents.
+This module implements the core M3APipeline class that coordinates an end-to-end
+multimodal retrieval-augmented generation system for comprehensive document 
+understanding through specialized AI agents.
 
-It combines PDF ingestion, multimodal (text + image) retrieval, and a multi-agent
-LLM system to answer complex queries with iterative refinement.
+System Architecture:
+    The M3APipeline orchestrates a sophisticated workflow combining document
+    ingestion, multi-modal indexing, and agent-based reasoning to answer
+    complex queries with iterative quality improvement.
+
+    ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+    │   Document      │───▶│  Multi-Modal     │───▶│  Agent-Based    │
+    │   Ingestion     │    │  Indexing        │    │  Query Answer   │
+    └─────────────────┘    └──────────────────┘    └─────────────────┘
+                                     │
+                           ┌─────────┴─────────┐
+                           │                   │
+                    ┌──────▼──────┐    ┌──────▼──────┐
+                    │ Text Index  │    │Visual Index │
+                    │ (ChromaDB)  │    │ (ColPali)   │
+                    └─────────────┘    └─────────────┘
 
 Key Responsibilities:
-- Ingest and index PDF documents into text and image vector stores.
-- Retrieve top-k relevant content chunks in response to user questions.
-- Orchestrate multi-agent reasoning using a configurable agent setup.
+    - Document ingestion and preprocessing coordination
+    - Dual-pipeline indexing management (textual + visual)
+    - Multi-agent system configuration and orchestration
+    - Query processing and response synthesis
+    - Quality assurance through iterative refinement
 
-Supported Agents:
-- TextAgent:         Answers using retrieved textual chunks.
-- ImageAgent:        Answers using image regions or page-level visual context.
-- GeneralizeAgent:   Synthesizes answers from multiple agents into a single response.
-- PlanningAgent:     Decomposes complex questions into structured sub-questions.
-- MergeAgent:        Fuses sub-agent responses into a coherent final answer.
-- VerifierAgent:     Evaluates merged answer, determines quality, and suggests refinement.
+Multi-Agent Architecture:
+    The system employs six specialized agents working in coordination:
+
+    1. TextAgent: Analyzes textual content from document chunks
+       - Processes retrieved text contexts using configurable LLMs
+       - Provides detailed, source-attributed textual insights
+       - Supports OpenAI, Gemini, and Qwen models
+
+    2. ImageAgent: Processes visual content from document pages
+       - Analyzes charts, diagrams, tables, and visual elements
+       - Extracts information from page-level visual contexts
+       - Integrates with vision-language models for understanding
+
+    3. GeneralizeAgent: Synthesizes multi-modal responses
+       - Combines text and image agent outputs intelligently
+       - Resolves conflicts and eliminates redundancy
+       - Creates coherent, unified responses with source attribution
+
+    4. PlanningAgent: Decomposes complex queries
+       - Analyzes user questions for complexity and scope
+       - Generates focused sub-questions for targeted retrieval
+       - Ensures comprehensive coverage of user intent
+
+    5. MergeAgent: Consolidates multiple sub-responses
+       - Combines answers from different sub-questions
+       - Maintains memory across iterations for context
+       - Creates natural, flowing narrative responses
+
+    6. VerifierAgent: Quality assessment and improvement
+       - Evaluates response quality on multiple criteria
+       - Generates follow-up questions for improvement
+       - Drives iterative refinement until quality threshold met
+
+Processing Workflow:
+    1. Query Input → Planning Agent (decomposition)
+    2. Sub-queries → RAG System (text + visual retrieval)
+    3. Retrieved contexts → Text/Image Agents (analysis)
+    4. Agent responses → Generalize Agent (synthesis)
+    5. Sub-answers → Merge Agent (consolidation)
+    6. Final answer → Verifier Agent (quality check)
+    7. If quality insufficient → Generate follow-ups → Repeat
+    8. Return high-quality answer to user
+
+Technical Features:
+    - Configurable agent models and parameters
+    - Persistent index management with incremental updates
+    - Memory-efficient processing with GPU optimization
+    - Comprehensive error handling and recovery
+    - Performance monitoring and optimization
+    - Scalable architecture for large document collections
 
 Usage Example:
-    pipeline = M3APipeline(pdf_dir, index_dir, rag_config, agent_config)
-    pipeline.ingest_cfg()                     # Index documents
-    final_answer = pipeline.process_query("What are the company's core products?")
+    ```python
+    # Initialize pipeline with configuration
+    pipeline = M3APipeline(
+        pdf_dir="data/merge",
+        index_dir="data/merge/index", 
+        agent_config=agent_config,
+        rag_config=rag_config,
+        ingest_only=False
+    )
+    
+    # Build indices from documents
+    pipeline.ingest_cfg()
+    
+    # Process user queries
+    answer = pipeline.process_query("What are the key findings?")
+    ```
+
+Configuration:
+    Agent configuration controls model selection and behavior:
+    - Model choices: OpenAI GPT-4o, Gemini 2.0, Qwen2.5-VL
+    - Quality thresholds and iteration limits
+    - Agent activation flags for customization
+
+Performance Optimizations:
+    - Lazy loading of models and indices
+    - Batch processing for multiple queries
+    - Memory management and cleanup
+    - Efficient vector storage and retrieval
+    - GPU acceleration where available
+
+Author: PDZ (Nguyen Quang Phu), Bang (Tieu Tri Bang)
+Version: 2.0 (Multi-Agent Architecture)
+License: MIT License
 """
 import logging
 
