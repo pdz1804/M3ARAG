@@ -20,11 +20,62 @@ import logging
 import base64
 from transformers import BitsAndBytesConfig
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger("VisualRAG")
+# Configure logging with separate handlers for terminal and file
+class SafeUnicodeFormatter(logging.Formatter):
+    """Custom formatter that handles Unicode characters safely for console output."""
+    def format(self, record):
+        # Get the formatted message
+        formatted = super().format(record)
+        # Replace problematic Unicode characters for console compatibility
+        safe_formatted = formatted.encode('ascii', errors='replace').decode('ascii')
+        return safe_formatted
+
+def setup_visualrag_logging():
+    """Setup logging with INFO level for terminal and DEBUG level for file."""
+    logger = logging.getLogger("VisualRAG")
+    
+    # Check if logger already has handlers (likely from main.py)
+    if logger.handlers:
+        return logger
+        
+    logger.setLevel(logging.DEBUG)
+    
+    # Prevent propagation to root logger to avoid duplicate messages
+    logger.propagate = False
+    
+    # Console handler - INFO level only (clean terminal output)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    # Use safe formatter for console to handle Unicode gracefully
+    safe_console_formatter = SafeUnicodeFormatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    console_handler.setFormatter(safe_console_formatter)
+    
+    # Add filter to ensure only INFO and above go to console (no DEBUG)
+    console_handler.addFilter(lambda record: record.levelno >= logging.INFO)
+    
+    # File handler - DEBUG level (detailed logging)
+    # Check if root logger already has file handlers (from main.py)
+    root_has_file_handler = any(isinstance(h, logging.FileHandler) for h in logging.root.handlers)
+    
+    if root_has_file_handler:
+        # main.py already set up logging, just append to existing log
+        file_handler = logging.FileHandler('agenticrag.log', mode='a', encoding='utf-8')
+    else:
+        # Independent usage, create fresh log file
+        file_handler = logging.FileHandler('agenticrag.log', mode='w', encoding='utf-8')
+    
+    file_handler.setLevel(logging.DEBUG)
+    # Use regular formatter for file (supports full Unicode)
+    file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(file_formatter)
+    
+    # Add handlers to logger
+    logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
+    
+    return logger
+
+logger = setup_visualrag_logging()
 
 class VisualRAGPipeline:
     """
@@ -307,9 +358,9 @@ class VisualRAGPipeline:
                 continue
         # --- end new code ---
             
-        print(f"Visual Contexts: {contexts}")
-
+        # Log summary to terminal (INFO) and full contexts to file only (DEBUG)
         logger.info(f"Retrieved {len(contexts)} visual contexts for query.")
+        logger.debug(f"Visual Contexts: {contexts}")
         return contexts
 
 

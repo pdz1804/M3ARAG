@@ -8,24 +8,26 @@ Instructions:
 3. Respond in 3-4 sentences with:
    - A clear answer
    - Explanation or reasoning if needed
-   - Source citation if possible (e.g., [Page 3], [Doc: fileX])
+   - Proper source citation using the metadata provided in brackets
 4. If no relevant info is found, return: "No answer found."
 
 Example:
 
 Context:
-Tesla plans to expand to Southeast Asia by 2025. Local governments have shown interest, but infrastructure remains limited. The Singapore plant is set to begin operations in Q4 2024. [Doc: Tesla2024Report]
+Tesla plans to expand to Southeast Asia by 2025. Local governments have shown interest, but infrastructure remains limited. The Singapore plant is set to begin operations in Q4 2024. [Page 15, Doc: Tesla_Q3_2024_Report]
+
+Production capacity at the new facility will initially target 200,000 units annually, with potential for expansion based on regional demand. [Page 16, Doc: Tesla_Q3_2024_Report]
 
 Question:
 What is Tesla's international expansion plan?
 
 Answer:
-Tesla plans to expand into Southeast Asia by 2025, starting with a new facility in Singapore opening in late 2024. While local governments are supportive, infrastructure is still a challenge. [Page 1, Doc: Tesla2024Report]
+Tesla plans to expand into Southeast Asia by 2025, starting with a new facility in Singapore opening in late 2024. The plant will initially produce 200,000 units annually with expansion potential based on regional demand, though infrastructure challenges remain. [Page 15-16, Doc: Tesla_Q3_2024_Report]
 
 ---
 
 Context:
-{context}
+{texts}
 
 Question:
 {query}
@@ -49,8 +51,9 @@ You are a visual assistant. Use the provided images to answer the user's questio
      - Visual elements like arrows, highlights, or patterns
      - Colors, shapes, or data points if relevant
 
-3. **Cite your visual references explicitly.**  
-   - For example: [Figure 1], [Table 2], [Image Caption on Page 3]
+3. **Cite your visual references explicitly using provided metadata.**  
+   - Use the page and document information provided for each image
+   - Format as: [Page X, Doc: DocumentName] or [Figure X, Page Y, Doc: DocumentName]
 
 4. **Be exhaustive for relevant content, but ignore unrelated parts.**
 
@@ -64,11 +67,11 @@ You are a visual assistant. Use the provided images to answer the user's questio
 **Question:**  
 What trend does the bar chart show?
 
-**Image [Figure 1]:**  
+**Image from Page 12, Doc: Sales_Report_2023:**  
 A bar chart with sales data from 2021 to 2023. Each bar increases in height from left to right. The 2023 bar is highlighted in red and shows the largest increase, with a label "$10M". The 2021 bar shows "$5M", and the 2022 bar shows "$7M".
 
 **Answer:**  
-The chart shows a steady increase in sales from 2021 to 2023. Sales grew from $5M in 2021 to $7M in 2022, then reached $10M in 2023, with the largest jump between 2022 and 2023. The 2023 bar is highlighted in red. [Figure 1]
+The chart shows a steady increase in sales from 2021 to 2023. Sales grew from $5M in 2021 to $7M in 2022, then reached $10M in 2023, with the largest jump between 2022 and 2023. The 2023 bar is highlighted in red, indicating the most significant growth year. [Page 12, Doc: Sales_Report_2023]
 
 ---
 
@@ -85,13 +88,21 @@ Your task:
 - Combine useful insights from both the text-based and image-based answers.
 - Use step-by-step reasoning to determine how to integrate them meaningfully.
 - Be fluent, informative, and concise. Remove redundancy, contradictions, or vague statements.
-- Use citations if present (e.g., [Doc: XYZ], [Fig. 2]), and format the final answer as a well-written paragraph.
+- PRESERVE ALL CITATIONS in their original context - do not move them to the end.
+- When citing information, keep citations immediately after the relevant sentence or claim.
+
+CRITICAL CITATION RULES:
+1. Maintain citations exactly where they appear in the original responses
+2. Use the format [Page X, Doc: DocumentName] consistently 
+3. Do NOT consolidate citations at the end of the response
+4. Each claim should have its citation right after it
+5. If multiple sources support the same point, list them together: [Page X, Doc: A; Page Y, Doc: B]
 
 Instructions:
 1. Read both the text and image answers carefully.
 2. Identify whether both, one, or neither contains valuable content.
-3. If both are useful: integrate them naturally in a fluent summary.
-4. If only one is useful: return only that, in polished form.
+3. If both are useful: integrate them naturally in a fluent summary while preserving all citations in context.
+4. If only one is useful: return only that, in polished form with citations preserved.
 5. If neither are useful: respond with "No answer found."
 6. Avoid listing responses — your job is to synthesize, not summarize.
 
@@ -106,20 +117,20 @@ Chain-of-Thought Reasoning Steps:
 Example 1:
 
 Text-based Answer:
-Tesla aims to expand into Southeast Asia, beginning with Singapore. [Doc: Tesla2024Report]
+Tesla aims to expand into Southeast Asia, beginning with Singapore [Page 15, Doc: Tesla2024Report]. The facility will produce 200,000 units annually [Page 16, Doc: Tesla2024Report].
 
 Image-based Answer:
-A chart shows projected demand for EVs in Vietnam and Thailand by 2025.
+A chart shows projected demand for EVs in Vietnam and Thailand by 2025 [Page 18, Doc: Tesla2024Report].
 
 Final Combined Answer:
-Tesla plans to expand into Southeast Asia, starting with a factory in Singapore. Forecasts show rising EV demand in Vietnam and Thailand by 2025. [Tesla2024Report, Fig. 2]
+Tesla plans to expand into Southeast Asia, starting with a factory in Singapore that will produce 200,000 units annually [Page 15-16, Doc: Tesla2024Report]. Market forecasts show rising EV demand in Vietnam and Thailand by 2025 [Page 18, Doc: Tesla2024Report].
 
 ---
 
 Example 2:
 
 Text-based Answer:
-The company is headquartered in New York and specializes in AI-driven financial platforms. [Doc 1]
+The company is headquartered in New York and specializes in AI-driven financial platforms [Page 5, Doc: CompanyProfile].
 
 Image-based Answer:
 No relevant diagrams or data were found in the image.
@@ -242,6 +253,12 @@ Each input corresponds to a separate sub-question and has already been generaliz
 - Maintain any citations (e.g., [Doc 1], [Page 3]) from the original answers.
 - If there is insufficient useful information, return: **"Insufficient data to form a complete answer."**
 
+## CRITICAL CITATION PRESERVATION RULES:
+1. **Keep Citations With Content**: Citations should appear immediately after the relevant information they support, NOT consolidated at the end
+2. **Maintain Context**: When merging information, preserve citations in their original context within the narrative
+3. **Multiple Sources**: When combining claims from multiple sources, list all relevant citations together: [Doc 1, Doc 2]
+4. **Natural Integration**: Citations should flow naturally within sentences and paragraphs, not as separate reference lists
+
 Chain-of-Thought Instructions:
 1. Read each answer and extract its key message.
 2. Identify overlapping or related insights and merge them.
@@ -325,15 +342,19 @@ Each follow-up question must be:
 
 ## Output Format:
 
-Answer Evaluation:
-<Your detailed justification here>
+**IMPORTANT: You must respond in valid JSON format only. Do not include any text before or after the JSON.**
 
-Score: <A number from 1 to 10>
-
-Follow-Up Questions:
-- Question 1 (Detailed, specific, in-scope)
-- Question 2 (Detailed, specific, in-scope)
-- Question 3 (Optional, if applicable)
+```json
+{{
+  "evaluation": "Your detailed justification here, including strengths and weaknesses",
+  "score": <number from 1 to 10>,
+  "follow_up_questions": [
+    "Question 1 (Detailed, specific, in-scope)",
+    "Question 2 (Detailed, specific, in-scope)",
+    "Question 3 (Optional, if applicable)"
+  ]
+}}
+```
 
 ---
 
@@ -347,15 +368,18 @@ Tesla plans to expand into Southeast Asia, starting with a factory in Singapore 
 
 ---
 
-Answer Evaluation:
-The answer is relevant and provides one specific action Tesla is taking (expanding to Singapore). However, the user asked for Tesla's **overall international expansion plan**, and this answer only mentions one country. It lacks details about plans for other regions, timelines, and overall strategy. The answer is clear but incomplete.
-
-Score: 6
-
-Follow-Up Questions:
-- Besides Singapore, which other countries are included in Tesla's international expansion plan for 2024–2025?
-- What are the specific next steps in Tesla's international expansion strategy beyond building the Singapore factory?
-- Are there any announced timelines for Tesla's expansion into other parts of Southeast Asia?
+Expected JSON Response:
+```json
+{{
+  "evaluation": "The answer is relevant and provides one specific action Tesla is taking (expanding to Singapore). However, the user asked for Tesla's overall international expansion plan, and this answer only mentions one country. It lacks details about plans for other regions, timelines, and overall strategy. The answer is clear but incomplete.",
+  "score": 6,
+  "follow_up_questions": [
+    "Besides Singapore, which other countries are included in Tesla's international expansion plan for 2024–2025?",
+    "What are the specific next steps in Tesla's international expansion strategy beyond building the Singapore factory?",
+    "Are there any announced timelines for Tesla's expansion into other parts of Southeast Asia?"
+  ]
+}}
+```
 
 ---
 
@@ -367,7 +391,7 @@ Question:
 Answer:
 {answer}
 
-Answer Evaluation:
+Respond with valid JSON only:
 """
 
 

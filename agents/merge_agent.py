@@ -20,7 +20,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 from agents.base import BaseAgent
-from config.prompt import MERGE_PROMPT
+from config.prompt_manager import prompt_manager
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
@@ -32,11 +32,19 @@ class MergeAgent(BaseAgent):
     def __init__(self, name="MergeAgent", qa_model="openai"):
         super().__init__(name)
         logger.info(f"Initializing MergeAgent with model: {qa_model}")
-
-        prompt = PromptTemplate.from_template(MERGE_PROMPT)
-
+        
+        # Use mode-aware prompt selection
+        merge_prompt_template = prompt_manager.get_merge_prompt()
+        prompt = PromptTemplate.from_template(merge_prompt_template)
+        
         if qa_model == "openai":
-            self.chain = prompt | ChatOpenAI(model_name="gpt-4o-mini", temperature=0) | StrOutputParser()
+            self.chain = prompt | ChatOpenAI(
+                model_name="gpt-4o-mini", 
+                temperature=0.5,            # Balanced for comprehensive merging
+                max_tokens=2048,            # Increased for detailed merged responses
+                top_p=0.95,
+                presence_penalty=0.1
+            ) | StrOutputParser()
 
         elif "qwen" in qa_model:
             model, processor = get_qwen_vl_model_and_processor()

@@ -3,7 +3,7 @@ import base64
 import logging
 from openai import OpenAI
 from pathlib import Path
-from config.prompt import IMAGE_PROMPT_TEMPLATE
+from config.prompt_manager import prompt_manager
 
 # === Setup Logging ===
 logging.basicConfig(level=logging.INFO)
@@ -17,7 +17,8 @@ def generate_caption_with_openai(input_data: dict) -> str:
     Uses GPT-4o-mini (OpenAI v1.x) to caption images based on the input query and image_paths.
     """
     query = input_data["query"]
-    image_paths = input_data["image_paths"]
+    image_paths = input_data.get("images", input_data.get("image_paths", []))  # Handle both key names
+    metadata = input_data.get("metadata", [])
 
     logger.info(f"Received query: {query}")
     logger.info(f"Retrieved {len(image_paths)} image(s):")
@@ -30,7 +31,23 @@ def generate_caption_with_openai(input_data: dict) -> str:
         return "No images to caption."
 
     # === Prepare messages ===
-    prompt = IMAGE_PROMPT_TEMPLATE.format(query=query)
+    # Use mode-aware prompt selection
+    prompt_template = prompt_manager.get_image_prompt()
+    
+    # Build context information from metadata for proper citations
+    context_info = ""
+    if metadata:
+        context_info = "\n\nSource Context for Citations:\n"
+        for i, meta in enumerate(metadata):
+            if isinstance(meta, dict):
+                doc_name = meta.get("source", "Unknown Document")
+                page_num = meta.get("page", "Unknown Page")
+                context_info += f"Image {i+1}: [Page {page_num}, Doc: {doc_name}]\n"
+            else:
+                context_info += f"Image {i+1}: {str(meta)}\n"
+        context_info += "\nWhen referencing specific images, use the format [Page X, Doc: DocumentName] for proper citation."
+    
+    prompt = prompt_template.format(query=query) + context_info
     
     messages = [{
         "role": "user",
@@ -64,8 +81,8 @@ def generate_caption_with_openai(input_data: dict) -> str:
         response = client.chat.completions.create(
             model="gpt-4o-mini",  
             messages=messages,
-            max_tokens=512,
-            temperature=0.3,
+            max_tokens=1024,            # Increased from 512 for more detailed image analysis
+            temperature=0.6,            # Slightly increased for more comprehensive responses
         )
         
         logger.info(f"OpenAI response received: {response.choices[0].message.content[:100]}...")

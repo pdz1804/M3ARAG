@@ -151,12 +151,40 @@ class TextAgent(BaseAgent):
             logger.warning("Missing question or contexts. Skipping generation.")
             return "No answer found."
 
-        # Extract raw text chunks and prepare prompt
-        contexts = [ctx['chunk'] for ctx in contexts]
-        contexts_str = "\n- ".join(contexts)
+        # Extract text chunks with metadata for proper citations
+        context_with_metadata = []
+        for ctx in contexts:
+            try:
+                # Log the context structure for debugging
+                logger.debug(f"Processing context: {list(ctx.keys())}")
+                
+                # Clean PDF name by removing artifacts
+                raw_pdf_name = ctx.get('chunk_pdf_name', 'Unknown Document')
+                clean_pdf_name = raw_pdf_name.replace('_pdf_', '').replace('__', '_').strip('_')
+                
+                # Get page number
+                page_num = ctx.get('pdf_page_number', 'Unknown')
+                
+                # Log extraction for debugging
+                logger.debug(f"Extracted: PDF='{raw_pdf_name}' -> '{clean_pdf_name}', Page={page_num}")
+                
+                # Format context with metadata for citation
+                formatted_context = f"{ctx['chunk']} [Page {page_num}, Doc: {clean_pdf_name}]"
+                context_with_metadata.append(formatted_context)
+                
+            except KeyError as e:
+                logger.error(f"Missing key in context: {e}. Context keys: {list(ctx.keys())}")
+                # Fallback: include chunk without metadata
+                chunk_text = ctx.get('chunk', str(ctx))
+                context_with_metadata.append(f"{chunk_text} [Source: Unknown]")
+            except Exception as e:
+                logger.error(f"Error processing context: {e}")
+                continue
+        
+        contexts_str = "\n\n".join(context_with_metadata)
 
         # Clean up memory before inference
-        del contexts
+        del contexts, context_with_metadata
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()

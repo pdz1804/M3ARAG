@@ -24,7 +24,7 @@ import os
 import logging
 from openai import OpenAI
 from dotenv import load_dotenv
-from config.prompt import TEXT_PROMPT_TEMPLATE
+from config.prompt_manager import prompt_manager
 
 # Setup logging and client
 logging.basicConfig(level=logging.INFO)
@@ -40,20 +40,30 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 def generate_caption_with_openai(input_data: dict) -> str:
     query = input_data.get("query", "")
-    context = input_data.get("texts", "")
+    texts = input_data.get("texts", "")
     logger.info(f"[OpenAI] Received query: {query}")
 
-    prompt = TEXT_PROMPT_TEMPLATE.format(query=query, context=context)
+    # Use mode-aware prompt selection
+    prompt_template = prompt_manager.get_text_prompt()
+    prompt = prompt_template.format(query=query, texts=texts)
+
+    # Enhanced system message for detailed mode
+    system_message = "You are a helpful assistant for document understanding and question answering."
+    if prompt_manager.is_enhanced_mode():
+        system_message += " Provide comprehensive, detailed responses with thorough analysis and explanations."
 
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",  
             messages=[
-                {"role": "system", "content": "You are a helpful assistant for document understanding and question answering."},
+                {"role": "system", "content": system_message},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
-            max_tokens=1024,
+            max_tokens=2048,            # Increased from 1024 for longer detailed responses
+            top_p=0.95,                 # High nucleus sampling for comprehensive responses
+            presence_penalty=0.1,       # Slight penalty to avoid repetition
+            frequency_penalty=0.1,      # Slight penalty for word repetition
         )
 
         answer = response.choices[0].message.content.strip()

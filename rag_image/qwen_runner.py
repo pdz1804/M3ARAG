@@ -3,7 +3,7 @@ import torch
 from transformers import BitsAndBytesConfig, Qwen2_5_VLForConditionalGeneration, AutoProcessor
 import os
 import logging
-from config.prompt import IMAGE_PROMPT_TEMPLATE
+from config.prompt_manager import prompt_manager
 from utils.model_utils import get_qwen_vl_model_and_processor
 
 # === Setup Logging ===
@@ -21,6 +21,7 @@ def generate_caption_with_qwen(input_data: dict) -> str:
 
     query = input_data["query"]
     images = input_data["images"]
+    metadata = input_data.get("metadata", [])
 
     logger.info(f"Image agent Received query: {query}")
     logger.info(f"Retrieved {len(images)} image(s):")
@@ -34,7 +35,23 @@ def generate_caption_with_qwen(input_data: dict) -> str:
     # === Begin captioning ===
     # answers = []
 
-    prompt = IMAGE_PROMPT_TEMPLATE.format(query=query)
+    # Use mode-aware prompt selection
+    prompt_template = prompt_manager.get_image_prompt()
+    
+    # Build context information from metadata for proper citations
+    context_info = ""
+    if metadata:
+        context_info = "\n\nSource Context for Citations:\n"
+        for i, meta in enumerate(metadata):
+            if isinstance(meta, dict):
+                doc_name = meta.get("source", "Unknown Document")
+                page_num = meta.get("page", "Unknown Page")
+                context_info += f"Image {i+1}: [Page {page_num}, Doc: {doc_name}]\n"
+            else:
+                context_info += f"Image {i+1}: {str(meta)}\n"
+        context_info += "\nWhen referencing specific images, use the format [Page X, Doc: DocumentName] for proper citation."
+    
+    prompt = prompt_template.format(query=query) + context_info
 
     messages = [
         {

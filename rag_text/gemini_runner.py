@@ -24,7 +24,7 @@ Usage:
 import logging
 from google import genai
 from dotenv import load_dotenv
-from config.prompt import TEXT_PROMPT_TEMPLATE
+from config.prompt_manager import prompt_manager
 
 # === Setup ===
 load_dotenv()
@@ -40,18 +40,26 @@ except Exception as e:
 
 def generate_caption_with_gemini(input_data: dict) -> str:
     query = input_data.get("query", "")
-    context = input_data.get("texts", "")
+    texts = input_data.get("texts", "")
     logger.info(f"[Gemini] Received query: {query}")
 
     if client is None:
         return "Gemini client not initialized."
 
-    prompt = TEXT_PROMPT_TEMPLATE.format(query=query, context=context)
+    # Use mode-aware prompt selection
+    prompt_template = prompt_manager.get_text_prompt()
+    prompt = prompt_template.format(query=query, texts=texts)
 
     try:
         response = client.models.generate_content(
             model="gemini-2.0-flash",
-            contents=[prompt]
+            contents=[prompt],
+            config={
+                "temperature": 0.6,         # Slightly increased for more detailed responses
+                "top_p": 0.95,             # High nucleus sampling
+                "top_k": 40,               # Moderate top-k for balance
+                "max_output_tokens": 2048,  # Explicit token limit for detailed responses
+            }
         )
         return response.text.strip()
     except Exception as e:

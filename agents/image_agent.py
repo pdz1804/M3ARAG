@@ -174,14 +174,53 @@ class ImageAgent(BaseAgent):
             logger.warning("No contexts passed to ImageAgent.")
             return "No image context provided."
         
+        # Extract images and preserve metadata for citations
         images = [ctx["image"] for ctx in contexts if "image" in ctx]
         
-        image_paths = prepare_images(images)
+        # Prepare metadata information for the captioning runner
+        metadata_info = []
+        for ctx in contexts:
+            if "image" in ctx:
+                try:
+                    # Log the context structure for debugging
+                    logger.debug(f"Processing visual context: {list(ctx.keys())}")
+                    
+                    # Clean document ID by removing artifacts
+                    raw_doc_id = ctx.get('document_id', 'Unknown Document')
+                    clean_doc_id = raw_doc_id.replace('_pdf_', '').replace('__', '_').strip('_')
+                    
+                    # Get page number
+                    page_num = ctx.get('page_number', 'Unknown')
+                    
+                    # Log extraction for debugging
+                    logger.debug(f"Extracted: Doc='{raw_doc_id}' -> '{clean_doc_id}', Page={page_num}")
+                    
+                    metadata_info.append({
+                        'source': clean_doc_id,  # Use 'source' key for consistency with text agent
+                        'page': page_num,
+                        'score': ctx.get('score', 0)
+                    })
+                    
+                except KeyError as e:
+                    logger.error(f"Missing key in visual context: {e}. Context keys: {list(ctx.keys())}")
+                    # Fallback metadata
+                    metadata_info.append({
+                        'source': 'Unknown Document',
+                        'page': 'Unknown',
+                        'score': 0
+                    })
+                except Exception as e:
+                    logger.error(f"Error processing visual context: {e}")
+                    continue
+        
+        image_paths = prepare_images(images[:3])
         release_memory()
         
+        # Pass metadata along with the query for proper citations
         return self.caption_with_llm.invoke({
             "query": question,
-            "images": image_paths   # ← Now Gemini expects file paths, not PIL.Image
+            "images": image_paths,
+            "metadata": metadata_info[:3]  # Match the image limit
         })
 
 

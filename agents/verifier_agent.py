@@ -19,11 +19,13 @@ Typical Usage:
 """
 
 import logging
+import json
+import re
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 from agents.base import BaseAgent
-from config.prompt import VERIFICATION_PROMPT
+from config.prompt_manager import prompt_manager
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
@@ -38,10 +40,17 @@ class VerifierAgent(BaseAgent):
         self.threshold = threshold
         logger.info(f"Initializing VerifierAgent with model: {qa_model}, threshold: {threshold}")
 
-        prompt = PromptTemplate.from_template(VERIFICATION_PROMPT)
+        # Use mode-aware prompt selection
+        verification_prompt_template = prompt_manager.get_verification_prompt()
+        prompt = PromptTemplate.from_template(verification_prompt_template)
 
         if qa_model == "openai":
-            self.chain = prompt | ChatOpenAI(model_name="gpt-4o-mini", temperature=0) | StrOutputParser()
+            self.chain = prompt | ChatOpenAI(
+                model_name="gpt-4o-mini", 
+                temperature=0.3,            # Slightly increased for more nuanced verification
+                max_tokens=2048,            # Increased for detailed evaluation
+                top_p=0.95
+            ) | StrOutputParser()
 
         elif "qwen" in qa_model:
             model, processor = get_qwen_vl_model_and_processor()
@@ -83,22 +92,60 @@ class VerifierAgent(BaseAgent):
         try:
             response = self.chain.invoke({"question": question, "answer": answer})
 
-            # Parse the response: split into evaluation and score
-            lines = response.strip().splitlines()
-            eval_lines = [line for line in lines if not line.strip().lower().startswith("score")]
-            score_lines = [line for line in lines if line.strip().lower().startswith("score")]
-
-            evaluation = "\n".join(eval_lines).strip()
-            score = int("".join(filter(str.isdigit, score_lines[0]))) if score_lines else 0
+            # Parse JSON response
+            # Clean the response - remove any markdown code blocks if present
+            cleaned_response = response.strip()
+            if cleaned_response.startswith('```json'):
+                cleaned_response = cleaned_response.split('```json')[1]
+            if cleaned_response.endswith('```'):
+                cleaned_response = cleaned_response.rsplit('```')[0]
+            cleaned_response = cleaned_response.strip()
             
-            # --- new code ---
-            # After parsing score and evaluation
-            followup_lines = [line for line in lines if line.strip().lower().startswith("follow")]
-            follow_up_questions = []
-            if followup_lines:
-                for i in range(1, len(lines)):
-                    if lines[i].strip().startswith("- "):
-                        follow_up_questions.append(lines[i].strip("- ").strip())
+            # Parse JSON
+            try:
+                result = json.loads(cleaned_response)
+                
+                # Extract values with defaults
+                score = result.get("score", 0)
+                evaluation = result.get("evaluation", "No evaluation provided")
+                follow_up_questions = result.get("follow_up_questions", [])
+                
+                # Ensure score is an integer
+                if isinstance(score, str):
+                    score = int(''.join(filter(str.isdigit, score))) if score else 0
+                elif not isinstance(score, int):
+                    score = int(score) if score else 0
+                    
+                # Ensure follow_up_questions is a list
+                if not isinstance(follow_up_questions, list):
+                    follow_up_questions = []
+                    
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse JSON response: {e}")
+                logger.error(f"Raw response: {response}")
+                
+                # Fallback to old parsing method
+                lines = response.strip().splitlines()
+                
+                score = 0
+                evaluation = response.strip()
+                
+                # Look for score patterns
+                for line in lines:
+                    score_match = re.search(r'score[:\s]*(\d+)', line.lower())
+                    if score_match:
+                        score = int(score_match.group(1))
+                        break
+                
+                # Extract follow-up questions
+                follow_up_questions = []
+                followup_section = False
+                for line in lines:
+                    if 'follow' in line.lower() and ('question' in line.lower() or 'up' in line.lower()):
+                        followup_section = True
+                        continue
+                    if followup_section and line.strip().startswith('- '):
+                        follow_up_questions.append(line.strip('- ').strip())
 
             logger.info(f"VerifierAgent score: {score}/10")
             logger.info(f"VerifierAgent evaluation: {evaluation}")

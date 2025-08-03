@@ -5,7 +5,7 @@ from PIL import Image
 from google import genai
 from google.genai import types
 from io import BytesIO
-from config.prompt import IMAGE_PROMPT_TEMPLATE
+from config.prompt_manager import prompt_manager
 
 # === Setup Logging ===
 logging.basicConfig(level=logging.INFO)
@@ -30,6 +30,7 @@ def generate_caption_with_gemini(input_data: dict) -> str:
     """
     query = input_data.get("query", "")
     image_paths = input_data.get("images", [])
+    metadata = input_data.get("metadata", [])
 
     logger.info(f"📥 Received query: {query}")
     logger.info(f"🔍 Retrieved {len(image_paths)} image(s):")
@@ -38,15 +39,31 @@ def generate_caption_with_gemini(input_data: dict) -> str:
         logger.info(f"  - {path}")
 
     if not image_paths:
-        logger.warning("⚠️ No images to caption.")
-        return "❌ No images to caption."
+        logger.warning("No images to caption.")
+        return "No images to caption."
 
     if client is None:
-        return "❌ Gemini client not initialized."
+        return "Gemini client not initialized."
 
     try:
         # === Build contents for Gemini ===
-        prompt = IMAGE_PROMPT_TEMPLATE.format(query=query)
+        # Use mode-aware prompt selection
+        prompt_template = prompt_manager.get_image_prompt()
+        
+        # Build context information from metadata for proper citations
+        context_info = ""
+        if metadata:
+            context_info = "\n\nSource Context for Citations:\n"
+            for i, meta in enumerate(metadata):
+                if isinstance(meta, dict):
+                    doc_name = meta.get("source", "Unknown Document")
+                    page_num = meta.get("page", "Unknown Page")
+                    context_info += f"Image {i+1}: [Page {page_num}, Doc: {doc_name}]\n"
+                else:
+                    context_info += f"Image {i+1}: {str(meta)}\n"
+            context_info += "\nWhen referencing specific images, use the format [Page X, Doc: DocumentName] for proper citation."
+        
+        prompt = prompt_template.format(query=query) + context_info
         contents = [prompt]
 
         for i, path in enumerate(image_paths):
@@ -79,8 +96,10 @@ def generate_caption_with_gemini(input_data: dict) -> str:
             contents=contents,
             config={
                 "max_output_tokens": 512,  # or your preferred value
-                "temperature": 0.2,        # optional: more deterministic output
-                "top_p": 0.95               # optional: controls nucleus sampling
+                "temperature": 0.6,         # Increased for more detailed responses  
+                "top_p": 0.95,             # High nucleus sampling for comprehensive responses
+                "top_k": 40,               # Moderate top-k for balance
+                "max_output_tokens": 1024,  # Explicit token limit for detailed image analysis
             }
         )
         
