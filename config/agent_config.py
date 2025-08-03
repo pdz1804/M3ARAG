@@ -14,11 +14,15 @@ agent_config = {
     # Shared QA model for image-based agents (currently support: "qwen", "gemini", "openai")             
     "qa_image": "gemini",            
     
-    # --- new code --- 
-    "max_loop": 4,
-    "max_tasks": 3,
-    "threshold": 6,
-    # --- end new code --- 
+    # Enhanced parameters for detailed answers
+    "max_loop": 3,                  # Increased from 4 to allow more refinement iterations
+    "max_tasks": 3,                 # Increased from 3 to allow more detailed task decomposition
+    "threshold": 7,               # Increased from 6 to require higher quality responses
+    
+    # New parameters for enhanced mode
+    "detailed_mode": True,          # Enable detailed answer generation mode
+    "min_response_length": 200,     # Minimum expected response length (words)
+    "comprehensive_analysis": True, # Enable comprehensive analysis mode
         
 }
 

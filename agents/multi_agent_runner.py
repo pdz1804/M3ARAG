@@ -212,11 +212,20 @@ class MultiAgentRunner:
         Returns:
             str: The final merged answer or a failure message.
         """
+        # Complete reset of all state for new question to prevent contamination
         self.score_history = []
+        self.memory_log = []
+        self.all_sub_answers = []
+        self.subquery_to_answer = {}
+        self.shared_memory = {}  # Also reset shared memory
         
-        logger.info(f"💬 User Question: {question}")
+        logger.info("================== STARTING NEW QUERY ==================")
+        logger.info(f"User Question: {question}")
+        logger.info(f"Configuration - Max Loops: {self.max_loop}, Max Tasks: {self.max_tasks}")
+        logger.info(f"Available Agents: {list(self.agents.keys())}")
+        logger.info("All memory and state completely reset for new query")
+        
         self.shared_memory["question"] = question
-        self.memory_log = []  # Reset memory for this session
 
         # Initialize agents (if not done in __init__)
         planning_agent = self.agents["PlanningAgent"]
@@ -226,79 +235,177 @@ class MultiAgentRunner:
         loop_count = 0
         max_loop = self.max_loop
         max_tasks = self.max_tasks
-        
-        self.all_sub_answers = []
-        self.subquery_to_answer = {}
 
         while loop_count < max_loop:
-            logger.info(f"🔁 Iteration {loop_count+1}")
-            # --- new code ---
+            logger.info(f"==================== Iteration {loop_count+1} ====================")
+            
+            # Generate sub-queries based on iteration
             if loop_count == 0:
+                logger.info("Planning Agent: Generating initial sub-queries")
                 sub_queries = planning_agent.run({"question": question})[:max_tasks]
+                logger.info(f"Planning Agent generated {len(sub_queries)} sub-queries")
             else:
+                logger.info("Using follow-up questions from verification")
                 sub_queries = verification.get("follow_up_questions", [])[:max_tasks]
-            # --- end new code ---
+                logger.info(f"Verification provided {len(sub_queries)} follow-up questions")
+            
+            # Log all sub-queries
+            for idx, sq in enumerate(sub_queries):
+                logger.info(f"Sub-query {idx+1}: {sq}")
             
             # Remove duplicate subqueries
+            original_count = len(sub_queries)
             sub_queries = [q for q in sub_queries if q not in self.subquery_to_answer]
+            if len(sub_queries) < original_count:
+                logger.info(f"Filtered out {original_count - len(sub_queries)} duplicate sub-queries")
             
-            for sub_query in sub_queries:
+            logger.info(f"Processing {len(sub_queries)} unique sub-queries")
+            
+            # Process each sub-query
+            for sq_idx, sub_query in enumerate(sub_queries):
+                logger.info(f"--- Processing Sub-query {sq_idx+1}/{len(sub_queries)}: {sub_query} ---")
+                
+                # Retrieve results for this sub-query
+                logger.info("Retrieving multi-modal context")
                 results = self.rag.retrieve_results(sub_query)
                 text_results = results["text_results"]
                 visual_results = results["visual_results"]
-
+                
+                logger.info(f"Retrieved {len(text_results)} text contexts and {len(visual_results)} visual contexts")
+                
+                # Process with sub-agents - pass complete context objects with metadata
                 out = self._run_sub_agents(sub_query, text_results, visual_results)
                 
                 self.subquery_to_answer[sub_query] = out
                 self.all_sub_answers.append(out)
+                logger.info(f"Sub-query {sq_idx+1} completed. Answer stored in memory.")
 
-            # Merge and Verify: Combine current and past merged context
-            if self.memory_log:
+            # Memory management: Only use current iteration's answers for merging
+            # Previous iterations should only inform if current iteration is insufficient
+            logger.info("Preparing answers for merging")
+            answers_to_merge = self.all_sub_answers.copy()
+            
+            # Only add previous merged context if we're in a refinement loop (loop_count > 0)
+            # and the current answers are insufficient (less than expected)
+            if self.memory_log and loop_count > 0 and len(answers_to_merge) < self.max_tasks:
                 prev_merged = self.memory_log[-1]
-                self.all_sub_answers.append(prev_merged)
+                answers_to_merge.append(prev_merged)
+                logger.info(f"Added previous merged answer for refinement. Total answers to merge: {len(answers_to_merge)}")
+            else:
+                logger.info(f"Using only current iteration answers. Total answers to merge: {len(answers_to_merge)}")
+                if self.memory_log:
+                    logger.info(f"Previous context available but not used (loop={loop_count}, answers={len(answers_to_merge)})")
                 
-            merged_answer = merge_agent.run({"generalized_answers": self.all_sub_answers})
+            # Merge all answers
+            logger.info("Merge Agent: Combining all answers")
+            merged_answer = merge_agent.run({"generalized_answers": answers_to_merge})
             self.memory_log.append(merged_answer)
+            logger.info(f"Merge Agent completed. Current memory log size: {len(self.memory_log)}")
+            logger.info(f"Merged Answer: {merged_answer}")
 
+            # Verify the merged answer
+            logger.info("Verifier Agent: Evaluating merged answer")
             verification = verifier_agent.run({
                 "question": question,
                 "merged_answer": merged_answer
             })
             
-            self.score_history.append(verification.get("score", 0))
+            score = verification.get("score", 0)
+            self.score_history.append(score)
+            
+            logger.info(f"Verification Score: {score}/10")
+            logger.info(f"Verification Evaluation: {verification.get('evaluation', 'No evaluation provided')}")
+            logger.info(f"Score History: {self.score_history}")
 
             if not verification["needs_retry"]:
-                logger.info("🎯 Final Answer:\n" + verification["merged_answer"])
-                logger.info("🧠 Verifier's Reasoning:\n" + verification["evaluation"])
-                print("\n✅ Final Answer:\n", verification["merged_answer"])
-                print("\n🧠 Verifier's Evaluation:\n", verification["evaluation"])
+                logger.info("================ FINAL RESULT ================")
+                logger.info(f"Final Answer: {verification['merged_answer']}")
+                logger.info(f"Verifier Reasoning: {verification['evaluation']}")
+                logger.info(f"Total Iterations: {loop_count + 1}")
+                logger.info(f"Final Score: {score}/10")
                 
                 self._plot_score_history()
                 
                 return merged_answer
             else:
+                logger.info(f"Answer not satisfactory (Score: {score}). Continuing to iteration {loop_count + 2}")
                 loop_count += 1
 
-        return "⚠️ Could not generate a satisfactory answer after multiple attempts."
+        logger.info("================ PROCESS FAILED ================")
+        logger.info(f"Could not generate satisfactory answer after {max_loop} iterations")
+        logger.info(f"Final score history: {self.score_history}")
+        logger.info(f"Total sub-queries processed: {len(self.subquery_to_answer)}")
+        
+        # Return the last merged answer with quality disclaimer
+        if self.memory_log:
+            last_answer = self.memory_log[-1]
+            final_score = self.score_history[-1] if self.score_history else 0
+            threshold = self.agent_config.get("threshold", 6)
+            
+            # Create a comprehensive quality disclaimer
+            score_progress = " -> ".join(map(str, self.score_history)) if len(self.score_history) > 1 else str(final_score)
+            
+            disclaimer = f"""
+
+---
+
+### ⚠️ Quality Notice
+
+**Score:** {final_score}/10 (Required: {threshold}/10)  
+**Status:** Did not meet quality threshold after {max_loop} iterations  
+**Score Progress:** {score_progress}  
+**Attempts:** {len(self.score_history)} iterations made  
+
+*This answer contains the best available information from our analysis, but may require further refinement or additional context to fully address your question.*
+
+---"""
+            
+            logger.info(f"Returning last merged answer with quality disclaimer (Score: {final_score}/{threshold})")
+            return last_answer + disclaimer
+        else:
+            logger.warning("No merged answers available to return")
+            return f"Could not generate a satisfactory answer after {max_loop} attempts. No intermediate results available."
 
     def _run_sub_agents(self, question, text_ctx, visual_ctx):
         local_memory = {"question": question}
         
+        # Add previous answers as context for this iteration
+        if self.memory_log:
+            local_memory["previous_answers"] = self.memory_log.copy()
+            logger.info(f"Added {len(self.memory_log)} previous answers as context")
+        
         for name, agent in self.agents.items():
-            logger.info(f"🧠 Running {name}")
+            logger.info(f"Running {name} for question: {question}")
+            
             if name == "TextAgent":
+                logger.info(f"TextAgent processing {len(text_ctx)} text chunks")
+                # Log first few chars of each context for debugging
+                for idx, ctx in enumerate(text_ctx[:2]):  # Only log first 2 for brevity
+                    chunk_preview = ctx.get('chunk', str(ctx))[:100] + "..." if len(str(ctx)) > 100 else str(ctx)
+                    logger.debug(f"Text Context {idx+1} preview: {chunk_preview}")
                 output = agent.run(local_memory, text_ctx)
+                
             elif name == "ImageAgent":
+                logger.info(f"ImageAgent processing {len(visual_ctx)} visual contexts")
+                for idx, ctx in enumerate(visual_ctx):
+                    logger.debug(f"Visual Context {idx+1}: {ctx}")
                 output = agent.run(local_memory, visual_ctx)
+                
             elif name == "GeneralizeAgent":
+                logger.info("GeneralizeAgent processing with accumulated context")
                 output = agent.run(local_memory)
+                
             else:
                 continue  # Skip other agents 
             
             local_memory[name] = output
-            logger.info(f"✔ Output from {name}: {output[:500]}")
+            logger.info(f"Output from {name}:\n {output}")
+            logger.info(f"Agent {name} completed successfully")
             
-        return local_memory.get("GeneralizeAgent", "No answer.")
+        final_answer = local_memory.get("GeneralizeAgent", "No answer.")
+        logger.info(f"Sub-agent processing complete. Final answer: {final_answer}")
+        
+        return final_answer
 
     def _plot_score_history(self):
         """
@@ -313,6 +420,6 @@ class MultiAgentRunner:
         plt.grid(True)
         plt.savefig("score_history.png")
         plt.close()
-        logger.info("📈 Score plot saved to score_history.png")
+        logger.info("Score plot saved to score_history.png")
 
 

@@ -27,18 +27,24 @@ from langchain_core.output_parsers import StrOutputParser
 from utils.model_utils import get_qwen_vl_model_and_processor
 from transformers import pipeline
 from langchain import HuggingFacePipeline
+from config.prompt_manager import prompt_manager
 
 class PlanningAgent(BaseAgent):
     def __init__(self, name="PlanningAgent", qa_model="openai", prompt_type="json"):
         super().__init__(name)
         logger.info(f"Initializing PlanningAgent with model: {qa_model}, prompt_type: {prompt_type}")
 
-        from config.prompt import PLANNING_PROMPT_JSON, PLANNING_PROMPT_SIMPLE
-        prompt_template = PLANNING_PROMPT_JSON if prompt_type == "json" else PLANNING_PROMPT_SIMPLE
-        prompt = PromptTemplate.from_template(prompt_template)
+        # Use mode-aware prompt selection - planning agent uses JSON mode
+        planning_prompt_template = prompt_manager.get_planning_prompt()
+        prompt = PromptTemplate.from_template(planning_prompt_template)
 
         if qa_model == "openai":
-            self.chain = prompt | ChatOpenAI(model_name="gpt-4o-mini", temperature=0) | StrOutputParser()
+            self.chain = prompt | ChatOpenAI(
+                model_name="gpt-4o-mini", 
+                temperature=0.2,            # Low temperature for consistent planning
+                max_tokens=1024,            # Sufficient for detailed task generation
+                top_p=0.9
+            ) | StrOutputParser()
 
         elif "qwen" in qa_model:
             model, processor = get_qwen_vl_model_and_processor()
@@ -67,7 +73,16 @@ class PlanningAgent(BaseAgent):
             logger.info(f"Raw response:\n{response}")
 
             if self.prompt_type == "json":
-                parsed = json.loads(response)
+                # Handle markdown-wrapped JSON responses
+                if response.startswith("```json"):
+                    # Extract JSON from markdown code block
+                    start_idx = response.find("```json") + 7
+                    end_idx = response.rfind("```")
+                    json_content = response[start_idx:end_idx].strip()
+                    parsed = json.loads(json_content)
+                else:
+                    # Direct JSON response
+                    parsed = json.loads(response)
                 return parsed.get("tasks", [])
             
             # Parse bullet-list format

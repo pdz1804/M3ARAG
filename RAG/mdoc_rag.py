@@ -178,16 +178,66 @@ License: MIT License
 # mdoc_rag.py
 # At the very top of mdoc_rag.py, BEFORE ANY OTHER IMPORTS
 import logging
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
 import os
 from RAG.text_pipeline import TextRAGPipeline
 from RAG.visual_pipeline import VisualRAGPipeline
 
-logger = logging.getLogger("MDocRAG")
+# Configure logging with separate handlers for terminal and file
+class SafeUnicodeFormatter(logging.Formatter):
+    """Custom formatter that handles Unicode characters safely for console output."""
+    def format(self, record):
+        # Get the formatted message
+        formatted = super().format(record)
+        # Replace problematic Unicode characters for console compatibility
+        safe_formatted = formatted.encode('ascii', errors='replace').decode('ascii')
+        return safe_formatted
+
+def setup_logging():
+    """Setup logging with INFO level for terminal and DEBUG level for file."""
+    logger = logging.getLogger("MDocRAG")
+    
+    # Check if logger already has handlers (likely from main.py)
+    if logger.handlers:
+        return logger
+        
+    logger.setLevel(logging.DEBUG)
+    
+    # Prevent propagation to root logger to avoid duplicate messages
+    logger.propagate = False
+    
+    # Console handler - INFO level only (clean terminal output)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    # Use safe formatter for console to handle Unicode gracefully
+    safe_console_formatter = SafeUnicodeFormatter('[%(asctime)s] %(levelname)s - %(message)s')
+    console_handler.setFormatter(safe_console_formatter)
+    
+    # Add filter to ensure only INFO and above go to console (no DEBUG)
+    console_handler.addFilter(lambda record: record.levelno >= logging.INFO)
+    
+    # File handler - DEBUG level (detailed logging)
+    # Check if root logger already has file handlers (from main.py)
+    root_has_file_handler = any(isinstance(h, logging.FileHandler) for h in logging.root.handlers)
+    
+    if root_has_file_handler:
+        # main.py already set up logging, just append to existing log
+        file_handler = logging.FileHandler('agenticrag.log', mode='a', encoding='utf-8')
+    else:
+        # Independent usage, create fresh log file
+        file_handler = logging.FileHandler('agenticrag.log', mode='w', encoding='utf-8')
+    
+    file_handler.setLevel(logging.DEBUG)
+    # Use regular formatter for file (supports full Unicode)
+    file_formatter = logging.Formatter('[%(asctime)s] %(levelname)s - %(message)s')
+    file_handler.setFormatter(file_formatter)
+    
+    # Add handlers to logger
+    logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
+    
+    return logger
+
+logger = setup_logging()
 # torch.set_default_dtype(torch.bfloat16)
 
 class MDocRAG:
@@ -292,9 +342,18 @@ class MDocRAG:
             query_str, self.text_index_obj, self.text_chunks, self.text_mapping,
             output_subdir=os.path.join(self.config["data_dir"], "index", "textual")
         )
-        for r in results:
-            logger.info(f"{r['chunk_pdf_name']} | Page {r['pdf_page_number']} | Score {r['score']:.2f}\n---")
-            logger.info(f"{r['chunk'].strip()}\n---")
+        
+        # Show summary in terminal (INFO level)
+        logger.info(f"Retrieved {len(results)} textual contexts for query.")
+        
+        # Show detailed info in log files only (DEBUG level)
+        for idx, r in enumerate(results):
+            # Clean PDF name by removing artifacts like '_pdf_' and '__'
+            clean_pdf_name = r['chunk_pdf_name'].replace('_pdf_', '').replace('__', '_').strip('_')
+            # Terminal: only chunk summary
+            logger.info(f"Text Chunk {idx+1}: PDF: {clean_pdf_name} | Page: {r['pdf_page_number']} | Score: {r['score']:.3f}")
+            # Log file: full metadata and content
+            logger.debug(f"Text Chunk {idx+1} Full Metadata: {r}")
 
         logger.info("\nTop Visual Pages:")
         vis = self.visual_rag.retrieve(
@@ -302,8 +361,18 @@ class MDocRAG:
             document_page_map=self.page_map,
             index_subdir=os.path.join(self.config["data_dir"], "index", "visual")
         )
-        for v in vis:
-            logger.info(f"{v['document_id']} | Page {v['page_number']} | Score {v['score']:.2f}")
+        
+        # Show summary in terminal (INFO level)
+        logger.info(f"Retrieved {len(vis)} visual contexts for query.")
+        
+        # Show detailed info in log files only (DEBUG level)
+        for idx, v in enumerate(vis):
+            # Clean document ID by removing artifacts
+            clean_doc_id = v['document_id'].replace('_pdf_', '').replace('__', '_').strip('_')
+            # Terminal: only page summary
+            logger.info(f"Visual Page {idx+1}: PDF: {clean_doc_id} | Page: {v['page_number']} | Score: {v['score']:.3f}")
+            # Log file: full metadata
+            logger.debug(f"Visual Page {idx+1} Full Metadata: {v}")
         
         text_results = results 
         visual_results = vis

@@ -24,7 +24,7 @@ Usage:
 import torch
 import os
 import logging
-from config.prompt import TEXT_PROMPT_TEMPLATE
+from config.prompt_manager import prompt_manager
 from utils.model_utils import get_qwen_vl_model_and_processor
 
 # === Setup Logging ===
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 def generate_caption_with_qwen(input_data: dict) -> str:
     query = input_data["query"]
-    context = input_data["texts"]
+    texts = input_data["texts"]
     logger.info(f"[Qwen] Received query: {query}")
 
     # for p in image_paths:
@@ -49,7 +49,9 @@ def generate_caption_with_qwen(input_data: dict) -> str:
     # === Begin captioning ===
     # answers = []
 
-    prompt = TEXT_PROMPT_TEMPLATE.format(query=query, context=context)
+    # Use mode-aware prompt selection
+    prompt_template = prompt_manager.get_text_prompt()
+    prompt = prompt_template.format(query=query, texts=texts)
 
     messages = [
         {

@@ -23,11 +23,62 @@ import pytesseract
 from pdf2image import convert_from_path
 import chromadb.utils.embedding_functions as embedding_functions
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger("TextRAG")
+# Configure logging with separate handlers for terminal and file
+class SafeUnicodeFormatter(logging.Formatter):
+    """Custom formatter that handles Unicode characters safely for console output."""
+    def format(self, record):
+        # Get the formatted message
+        formatted = super().format(record)
+        # Replace problematic Unicode characters for console compatibility
+        safe_formatted = formatted.encode('ascii', errors='replace').decode('ascii')
+        return safe_formatted
+
+def setup_textrag_logging():
+    """Setup logging with INFO level for terminal and DEBUG level for file."""
+    logger = logging.getLogger("TextRAG")
+    
+    # Check if logger already has handlers (likely from main.py)
+    if logger.handlers:
+        return logger
+        
+    logger.setLevel(logging.DEBUG)
+    
+    # Prevent propagation to root logger to avoid duplicate messages
+    logger.propagate = False
+    
+    # Console handler - INFO level only (clean terminal output)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    # Use safe formatter for console to handle Unicode gracefully
+    safe_console_formatter = SafeUnicodeFormatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    console_handler.setFormatter(safe_console_formatter)
+    
+    # Add filter to ensure only INFO and above go to console (no DEBUG)
+    console_handler.addFilter(lambda record: record.levelno >= logging.INFO)
+    
+    # File handler - DEBUG level (detailed logging)
+    # Check if root logger already has file handlers (from main.py)
+    root_has_file_handler = any(isinstance(h, logging.FileHandler) for h in logging.root.handlers)
+    
+    if root_has_file_handler:
+        # main.py already set up logging, just append to existing log
+        file_handler = logging.FileHandler('agenticrag.log', mode='a', encoding='utf-8')
+    else:
+        # Independent usage, create fresh log file
+        file_handler = logging.FileHandler('agenticrag.log', mode='w', encoding='utf-8')
+    
+    file_handler.setLevel(logging.DEBUG)
+    # Use regular formatter for file (supports full Unicode)
+    file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(file_formatter)
+    
+    # Add handlers to logger
+    logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
+    
+    return logger
+
+logger = setup_textrag_logging()
 
 class TextRAGPipeline:
     """
@@ -288,23 +339,47 @@ class TextRAGPipeline:
         ids = result["ids"][0]
         distances = result["distances"][0]  # Cosine distance
         
+        # Debug information
+        logger.info(f"Query returned {len(ids)} results")
+        logger.info(f"Available chunks: {len(all_chunks)}, Available mappings: {len(chunk_to_doc_mapping)}")
+        logger.info(f"Retrieved IDs: {ids}")
+        
         contexts: List[Dict[str, Any]] = []
         
         for rank, (cid, dist) in enumerate(zip(ids, distances), start=1):
-            logger.info(f"[Text Rank {rank}] Chunk ID: {cid} | Similarity: {1 - dist:.4f}")
-            
-            idx = int(cid.split("_")[1])
-            
-            contexts.append({
-                "chunk": all_chunks[idx],
-                "chunk_pdf_name": chunk_to_doc_mapping[idx]["chunk_pdf_name"],
-                "pdf_page_number": chunk_to_doc_mapping[idx]["pdf_page_number"],
-                "rank": rank,
-                "score": float(1.0 - dist) # convert distance → similarity
-            })
+            try:
+                idx = int(cid.split("_")[1])
+                
+                # Check if index is within bounds
+                if idx >= len(all_chunks):
+                    logger.warning(f"Chunk index {idx} out of bounds (max: {len(all_chunks)-1}). Skipping.")
+                    continue
+                
+                if idx >= len(chunk_to_doc_mapping):
+                    logger.warning(f"Mapping index {idx} out of bounds (max: {len(chunk_to_doc_mapping)-1}). Skipping.")
+                    continue
+                
+                # Get metadata for logging
+                pdf_name = chunk_to_doc_mapping[idx]["chunk_pdf_name"]
+                page_num = chunk_to_doc_mapping[idx]["pdf_page_number"]
+                similarity = 1 - dist
+                
+                logger.info(f"[Text Rank {rank}] Chunk ID: {cid} | PDF: {pdf_name} | Page: {page_num} | Similarity: {similarity:.4f}")
+                
+                contexts.append({
+                    "chunk": all_chunks[idx],
+                    "chunk_pdf_name": pdf_name,
+                    "pdf_page_number": page_num,
+                    "rank": rank,
+                    "score": float(similarity) # convert distance → similarity
+                })
+            except (ValueError, IndexError) as e:
+                logger.error(f"Error processing chunk ID {cid}: {e}. Skipping.")
+                continue
 
-        logger.info(f"Textual Contexts: {contexts}")
+        # Log summary to terminal (INFO) and full contexts to file only (DEBUG)
         logger.info(f"Retrieved {len(contexts)} textual contexts for query.")
+        logger.debug(f"Textual Contexts: {contexts}")
         return contexts
 
 

@@ -83,16 +83,19 @@ import json
 import argparse
 from dotenv import load_dotenv
 from pathlib import Path
+
+# Disable ChromaDB telemetry to avoid telemetry errors
+os.environ["ANONYMIZED_TELEMETRY"] = "False"
+
 from utils.document_processor import DocumentProcessor, copy_pdfs_to_merge_dir
 from pipeline.M3APipeline import M3APipeline
 from pipeline.chat import run_chat
-from config.agent_config import agent_config
-from config.rag_config import rag_config
+from config.mode_manager import ModeManager
 
 # # Uncomment to check if CUDA is available
 # import torch
-# print(torch.cuda.is_available())
-# print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else "No CUDA")
+# logger.info(torch.cuda.is_available())
+# logger.info(torch.cuda.get_device_name(0) if torch.cuda.is_available() else "No CUDA")
 
 load_dotenv()
 
@@ -117,9 +120,9 @@ input_items = [
     # "local/2022_MT_KHMT.pdf",
     # "local/2501.02189v6_Survey of SOTA LVLM.pdf",
     # "local/company_profiles_external_final.csv",
-    "local/INTRO_PHASE2_2025.pptx",
+    # "local/INTRO_PHASE2_2025.pptx",
     # "local/main_fig.jpg",
-    "local/Text mining by using Python2025.docx"
+    # "local/Text mining by using Python2025.docx"
 ]
 
 def parse_args():
@@ -128,11 +131,27 @@ def parse_args():
     parser.add_argument("--download", action="store_true", help="Only for download documents")
     parser.add_argument("--chat", action="store_true", help="Enable chat mode")
     parser.add_argument("--app", action="store_true", help="Run Streamlit app instead of CLI")
+    parser.add_argument("--mode", choices=["standard", "enhanced"], default="standard", 
+                       help="Response generation mode: standard or enhanced")
     return parser.parse_args()
 
 def main():
-    print("=== AgenticRAG Pipeline ===")
+    logger.info("=== AgenticRAG Pipeline ===")
     args = parse_args() 
+    
+    # === Initialize Mode Manager ===
+    mode_manager = ModeManager()
+    mode_manager.set_mode(args.mode)
+    current_config = mode_manager.get_current_config()
+    
+    logger.info(f"Running in {args.mode} mode")
+    if args.mode == "enhanced":
+        logger.info("Enhanced features enabled:")
+        logger.info(f"  Max loops: {current_config['agent_config']['max_loop']}")
+        logger.info(f"  Max tasks: {current_config['agent_config']['max_tasks']}")
+        logger.info(f"  Quality threshold: {current_config['agent_config']['threshold']}")
+        logger.info(f"  Top-K retrieval: {current_config['rag_config']['top_k']}")
+        logger.info(f"  Chunk size: {current_config['rag_config']['chunk_size']}")
     
     # === Run Streamlit app ===
     if args.app:
@@ -142,7 +161,7 @@ def main():
     
     # === Downloading documents ===
     if args.download:
-        logger.info("📥 Downloading documents...")
+        logger.info("Downloading documents...")
         STORE_DIR = Path("data/store")
         STORE_DIR.mkdir(parents=True, exist_ok=True)
         
@@ -155,9 +174,9 @@ def main():
         with open("data/input_to_normalized_mapping.json", "w", encoding="utf-8") as f:
             json.dump(input_to_normalized, f, indent=2, ensure_ascii=False)
 
-        print("📘 Saved:")
-        print(" - input_to_output_mapping.json (downloaded files)")
-        print(" - input_to_normalized_mapping.json (final normalized PDFs)")
+        logger.info("Saved:")
+        logger.info(" - input_to_output_mapping.json (downloaded files)")
+        logger.info(" - input_to_normalized_mapping.json (final normalized PDFs)")
         
         # === Merge all PDFs into a single directory
         extract_pdf_dir = Path("data/extract/pdf")
@@ -173,19 +192,23 @@ def main():
     pdf_dir = "data/merge"
     index_dir = "data/merge/index"
 
+    # Use configuration from mode manager
     pipeline = M3APipeline(
         pdf_dir=pdf_dir,
         index_dir=index_dir,
-        agent_config=agent_config,
-        rag_config=rag_config,
+        agent_config=current_config["agent_config"],
+        rag_config=current_config["rag_config"],
         ingest_only=not args.chat
     )   
 
     if args.ingest:
+        logger.info("Starting document ingestion and indexing...")
         pipeline.ingest_cfg()
+        logger.info("Document ingestion completed")
 
     # how many agents are there in mdocagent architecture and what are they
     if args.chat:
+        logger.info("Starting chat mode...")
         run_chat(pipeline)
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ from agents.base import BaseAgent
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
-from config.prompt import GENERALIZED_PROMPT
+from config.prompt_manager import prompt_manager
 from utils.model_utils import get_qwen_vl_model_and_processor
 from transformers import pipeline
 from langchain import HuggingFacePipeline
@@ -28,10 +28,18 @@ class GeneralizeAgent(BaseAgent):
         super().__init__(name)
         logger.info(f"Initializing GeneralizeAgent with backend model: {qa_model}")
         
-        prompt = PromptTemplate.from_template(GENERALIZED_PROMPT)
+        # Use mode-aware prompt selection
+        generalize_prompt_template = prompt_manager.get_generalize_prompt()
+        prompt = PromptTemplate.from_template(generalize_prompt_template)
 
         if qa_model == "openai":
-            self.chain = prompt | ChatOpenAI(model_name="gpt-4o-mini", temperature=0) | StrOutputParser()
+            self.chain = prompt | ChatOpenAI(
+                model_name="gpt-4o-mini", 
+                temperature=0.4,            # Moderate temperature for synthesis
+                max_tokens=2048,            # Increased for detailed generalized responses
+                top_p=0.95,
+                presence_penalty=0.1
+            ) | StrOutputParser()
 
         elif "qwen" in qa_model:
             model, processor = get_qwen_vl_model_and_processor()
@@ -64,7 +72,7 @@ class GeneralizeAgent(BaseAgent):
         image_resp = input_data.get("ImageAgent", "")
         
         if not text_resp and not image_resp:
-            logger.warning("⚠️ Both TextAgent and ImageAgent responses are missing or empty.")
+            logger.warning("Both TextAgent and ImageAgent responses are missing or empty.")
             return "No content to generalize."
         
         try:

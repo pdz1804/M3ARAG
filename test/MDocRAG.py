@@ -55,7 +55,7 @@ def log_entry_exit(func):
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.FileHandler("visdomrag.log"), logging.StreamHandler()]
+    handlers=[logging.FileHandler("visdomrag.log", encoding='utf-8'), logging.StreamHandler()]
 )
 
 logger = logging.getLogger("MDocRAG")
